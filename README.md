@@ -9,7 +9,7 @@ Serviço de gestão de estacionamento: controla a ocupação das vagas, processa
 | Documento | Conteúdo |
 |---|---|
 | [Arquitetura (ADR-0001)](docs/adr/0001-arquitetura-teslapark-api.md) | Decisões técnicas e suas justificativas, modelo de dados, contrato da API e requisitos não funcionais |
-| [Especificações](docs/SPECS.md) | Plano de implementação — escopo, regras e critérios de aceite de cada entrega |
+| [Especificações](docs/specs.md) | Plano de implementação — escopo, regras e critérios de aceite de cada entrega |
 
 ## Ambiente local
 

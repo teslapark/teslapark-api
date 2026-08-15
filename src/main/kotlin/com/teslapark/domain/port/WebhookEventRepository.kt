@@ -10,4 +10,6 @@ interface WebhookEventRepository {
     fun findBy(idempotencyKey: IdempotencyKey): WebhookEventRecord?
 
     fun save(event: WebhookEventRecord): WebhookEventRecord
+
+    fun discard(idempotencyKey: IdempotencyKey)
 }

@@ -116,7 +116,7 @@ class MySqlParkingSessionRepository(
             session.basePriceApplied?.amount,
             session.billedHours,
             session.amountCharged?.amount,
-            null,
+            session.revenueDate?.let(java.sql.Date::valueOf),
             session.id,
         )
         return session

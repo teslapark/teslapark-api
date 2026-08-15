@@ -49,6 +49,14 @@ sealed interface DomainError {
         val licensePlate: String,
     ) : DomainError
 
+    data class MissingEventField(
+        val field: String,
+    ) : DomainError
+
+    data class MalformedEventPayload(
+        val detail: String,
+    ) : DomainError
+
     data object GarageConfigurationUnavailable : DomainError
 
     data class DuplicateWebhookEvent(

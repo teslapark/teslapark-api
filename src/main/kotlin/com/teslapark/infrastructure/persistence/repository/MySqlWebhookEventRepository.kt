@@ -69,4 +69,10 @@ class MySqlWebhookEventRepository(
             )
             event
         }
+
+    override fun discard(idempotencyKey: IdempotencyKey) {
+        jdbc.inTransaction { connection ->
+            connection.update("DELETE FROM webhook_event WHERE idempotency_key = ?", idempotencyKey.value)
+        }
+    }
 }

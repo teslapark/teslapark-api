@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 
 class ParkingSessionTest {
     private val entryTime = Instant.parse("2026-08-15T12:00:00Z")
@@ -107,7 +108,13 @@ class ParkingSessionTest {
 
     @Test
     fun `charge is attached without altering the state machine`() {
-        val charged = exited().withCharge(Money.of("40.50"), billedHours = 3, amount = Money.of("121.50"))
+        val charged =
+            exited().withCharge(
+                Money.of("40.50"),
+                billedHours = 3,
+                amount = Money.of("121.50"),
+                revenueDate = LocalDate.parse("2026-08-15"),
+            )
 
         charged.status shouldBe SessionStatus.EXITED
         charged.amountCharged shouldBe Money.of("121.50")

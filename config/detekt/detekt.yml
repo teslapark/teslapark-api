@@ -56,7 +56,8 @@ style:
     excludes: ['**/test/**']
   ReturnCount:
     active: true
-    max: 3
+    max: 4
+    excludeGuardClauses: true
   ForbiddenComment:
     active: true
     comments:

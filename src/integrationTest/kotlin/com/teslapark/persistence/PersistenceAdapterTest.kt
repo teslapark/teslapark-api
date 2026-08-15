@@ -178,7 +178,9 @@ class PersistenceAdapterTest {
         sessions.save(enteredSession(plate)).errorOrNull().shouldBeInstanceOf<DomainError.SessionAlreadyOpen>()
 
         val closed = open.exit(now.plus(Duration.ofMinutes(130))).valueOrNull()!!
-        sessions.save(closed.withCharge(Money.of("40.50"), billedHours = 3, amount = Money.of("121.50")))
+        sessions.save(
+            closed.withCharge(Money.of("40.50"), billedHours = 3, amount = Money.of("121.50"), revenueDate = LocalDate.parse("2026-08-15")),
+        )
 
         sessions.findActiveSessionFor(plate).shouldBeNull()
         val reloaded = sessions.findById(open.id!!).shouldNotBeNull()

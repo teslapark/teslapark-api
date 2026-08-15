@@ -60,6 +60,7 @@ fun ParkingSessionEntity.toDomain(): ParkingSession =
         basePriceApplied = basePriceApplied?.let { Money.of(it, CurrencyCode(currency)) },
         billedHours = billedHours,
         amountCharged = amountCharged?.let { Money.of(it, CurrencyCode(currency)) },
+        revenueDate = revenueDate,
     )
 
 fun SectorDailyRevenueEntity.toDomain(): DailyRevenue =

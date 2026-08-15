@@ -7,6 +7,7 @@ import com.teslapark.domain.error.asSuccess
 import java.math.BigDecimal
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 
 data class ParkingSession(
     val licensePlate: LicensePlate,
@@ -22,6 +23,7 @@ data class ParkingSession(
     val basePriceApplied: Money? = null,
     val billedHours: Int? = null,
     val amountCharged: Money? = null,
+    val revenueDate: LocalDate? = null,
 ) {
     val isClosed: Boolean get() = status.isClosed
 
@@ -58,7 +60,14 @@ data class ParkingSession(
         basePrice: Money,
         billedHours: Int,
         amount: Money,
-    ): ParkingSession = copy(basePriceApplied = basePrice, billedHours = billedHours, amountCharged = amount)
+        revenueDate: LocalDate,
+    ): ParkingSession =
+        copy(
+            basePriceApplied = basePrice,
+            billedHours = billedHours,
+            amountCharged = amount,
+            revenueDate = revenueDate,
+        )
 
     private fun rejectTransitionTo(next: SessionStatus): DomainResult<ParkingSession>? =
         when {

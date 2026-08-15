@@ -181,6 +181,10 @@ class InMemoryWebhookEventRepository : WebhookEventRepository {
         events[event.idempotencyKey] = event
         return event
     }
+
+    override fun discard(idempotencyKey: IdempotencyKey) {
+        events.remove(idempotencyKey)
+    }
 }
 
 class InMemoryAnomalyRepository : AnomalyRepository {
@@ -220,5 +224,15 @@ class InMemoryGarageStateRepository : GarageStateRepository {
 
     override fun markStale() {
         if (status == GarageConfigurationStatus.SYNCED) status = GarageConfigurationStatus.STALE
+    }
+}
+
+class InMemoryTransactionBoundary : TransactionBoundary {
+    var transactions: Int = 0
+        private set
+
+    override fun <T> inTransaction(block: () -> T): T {
+        transactions++
+        return block()
     }
 }

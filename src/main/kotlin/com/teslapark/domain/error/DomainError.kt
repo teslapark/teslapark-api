@@ -51,6 +51,22 @@ sealed interface DomainError {
 
     data object GarageConfigurationUnavailable : DomainError
 
+    data class DuplicateWebhookEvent(
+        val idempotencyKey: String,
+    ) : DomainError
+
+    data class SpotNotHeld(
+        val sessionId: Long,
+    ) : DomainError
+
+    data class SpotAlreadyOccupied(
+        val externalId: Long,
+    ) : DomainError
+
+    data class SessionAlreadyOpen(
+        val licensePlate: String,
+    ) : DomainError
+
     data class SectorClosed(
         val code: String,
     ) : DomainError

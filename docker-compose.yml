@@ -1,0 +1,102 @@
+name: ${COMPOSE_PROJECT_NAME:-teslapark}
+
+services:
+  mysql:
+    image: ${MYSQL_IMAGE:-mysql:8.4}
+    container_name: teslapark-mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+00:00
+      - --skip-name-resolve
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:?set MYSQL_DATABASE in .env}
+      MYSQL_USER: ${MYSQL_USER:?set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+    ports:
+      - "${MYSQL_HOST_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD
+        - mysqladmin
+        - ping
+        - --host=127.0.0.1
+        - --user=root
+        - --password=${MYSQL_ROOT_PASSWORD}
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    networks:
+      - teslapark
+    restart: unless-stopped
+
+  # O emulador do GCS resolve o webhook em localhost:3003, ignorando EXTERNAL_API_URL.
+  # Por isso a API compartilha este namespace de rede (network_mode: service) e as
+  # portas de ambos os processos sao publicadas aqui.
+  gate-control-system:
+    image: ${GCS_IMAGE:?set GCS_IMAGE in .env}
+    platform: ${GCS_PLATFORM:-linux/amd64}
+    container_name: teslapark-gcs
+    environment:
+      EXTERNAL_API_URL: ${GCS_WEBHOOK_URL:-http://localhost:3003/webhook}
+    ports:
+      - "${GCS_HOST_PORT:-3000}:3000"
+      - "${API_HOST_PORT:-3003}:3003"
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - "timeout 2 bash -c '< /dev/tcp/127.0.0.1/${GCS_PORT:-3000}'"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    networks:
+      - teslapark
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: teslapark/api:${API_VERSION:-local}
+    container_name: teslapark-api
+    depends_on:
+      mysql:
+        condition: service_healthy
+      gate-control-system:
+        condition: service_healthy
+    network_mode: service:gate-control-system
+    environment:
+      MICRONAUT_ENVIRONMENTS: ${MICRONAUT_ENVIRONMENTS:-dev}
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -Duser.timezone=UTC}
+      DATASOURCE_URL: ${DATASOURCE_URL:?set DATASOURCE_URL in .env}
+      DATASOURCE_USERNAME: ${DATASOURCE_USERNAME:?set DATASOURCE_USERNAME in .env}
+      DATASOURCE_PASSWORD: ${DATASOURCE_PASSWORD:?set DATASOURCE_PASSWORD in .env}
+      GCS_BASE_URL: ${GCS_BASE_URL:-http://localhost:3000}
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - --fail
+        - --silent
+        - http://127.0.0.1:3003/health/readiness
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+networks:
+  teslapark:
+    name: teslapark
+    driver: bridge
+
+volumes:
+  mysql-data:
+    name: teslapark-mysql-data

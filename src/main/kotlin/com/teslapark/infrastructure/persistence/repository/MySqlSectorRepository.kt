@@ -5,7 +5,6 @@ import com.teslapark.domain.model.SectorCode
 import com.teslapark.domain.port.SectorRepository
 import com.teslapark.infrastructure.persistence.mapper.toDomain
 import com.teslapark.infrastructure.persistence.mapper.toSectorEntity
-import io.micronaut.context.annotation.Value
 import jakarta.inject.Singleton
 import java.sql.Connection
 import java.sql.Time
@@ -19,7 +18,7 @@ private const val SELECT_SECTOR =
 @Singleton
 class MySqlSectorRepository(
     private val jdbc: JdbcOperations,
-    @Value("\${teslapark.garage.name:sp-01}") private val garageName: String,
+    private val garageRegistry: GarageRegistry,
 ) : SectorRepository {
     override fun findByCode(code: SectorCode): Sector? =
         jdbc.readOnly { connection ->
@@ -33,7 +32,7 @@ class MySqlSectorRepository(
 
     override fun synchronize(sectors: List<Sector>): List<Sector> {
         jdbc.inTransaction { connection ->
-            val garageId = ensureGarage(connection)
+            val garageId = garageRegistry.ensureGarage(connection)
             sectors.forEach { sector -> upsert(connection, garageId, sector) }
         }
         return findAll()
@@ -45,19 +44,6 @@ class MySqlSectorRepository(
                 it.getInt("capacity")
             } ?: 0
         }
-
-    fun findIdByCode(
-        connection: Connection,
-        code: SectorCode,
-    ): Long? = connection.queryFirst("SELECT id FROM sector WHERE code = ?", code.value) { it.getLong("id") }
-
-    private fun ensureGarage(connection: Connection): Long {
-        connection.update(
-            "INSERT INTO garage (name) VALUES (?) ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP(3)",
-            garageName,
-        )
-        return connection.queryFirst("SELECT id FROM garage WHERE name = ?", garageName) { it.getLong("id") }!!
-    }
 
     private fun upsert(
         connection: Connection,

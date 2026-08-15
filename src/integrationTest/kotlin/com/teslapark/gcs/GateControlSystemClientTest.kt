@@ -68,6 +68,7 @@ class GateControlSystemClientTest {
                     "teslapark.gcs.retry.delay" to "50ms",
                     "datasources.default.enabled" to false,
                     "flyway.datasources.default.enabled" to false,
+                    "teslapark.garage.sync.enabled" to false,
                 ) + overrides,
                 "test",
             )

@@ -8,6 +8,7 @@ import com.teslapark.domain.model.AnomalyType
 import com.teslapark.domain.model.Coordinates
 import com.teslapark.domain.model.DailyRevenue
 import com.teslapark.domain.model.GarageConfiguration
+import com.teslapark.domain.model.GarageConfigurationStatus
 import com.teslapark.domain.model.IdempotencyKey
 import com.teslapark.domain.model.LicensePlate
 import com.teslapark.domain.model.ParkingSession
@@ -195,4 +196,29 @@ class InMemoryAnomalyRepository : AnomalyRepository {
     override fun findAllOfType(type: AnomalyType): List<SessionAnomaly> = anomalies.filter { it.type == type }
 
     override fun countOfType(type: AnomalyType): Int = findAllOfType(type).size
+}
+
+class InMemoryGarageStateRepository : GarageStateRepository {
+    private var status = GarageConfigurationStatus.PENDING
+    private var syncedAt: Instant? = null
+    private var capacity = 0
+
+    override fun currentStatus(): GarageConfigurationStatus = status
+
+    override fun lastSyncAt(): Instant? = syncedAt
+
+    override fun totalCapacity(): Int = capacity
+
+    override fun markSynced(
+        at: Instant,
+        totalCapacity: Int,
+    ) {
+        status = GarageConfigurationStatus.SYNCED
+        syncedAt = at
+        capacity = totalCapacity
+    }
+
+    override fun markStale() {
+        if (status == GarageConfigurationStatus.SYNCED) status = GarageConfigurationStatus.STALE
+    }
 }

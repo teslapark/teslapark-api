@@ -15,6 +15,7 @@ import com.teslapark.domain.model.SectorCode
 import com.teslapark.domain.model.SessionAnomaly
 import com.teslapark.domain.model.Spot
 import com.teslapark.domain.model.WebhookEventRecord
+import com.teslapark.infrastructure.persistence.repository.GarageRegistry
 import com.teslapark.infrastructure.persistence.repository.JdbcOperations
 import com.teslapark.infrastructure.persistence.repository.MySqlAnomalyRepository
 import com.teslapark.infrastructure.persistence.repository.MySqlParkingSessionRepository
@@ -86,7 +87,7 @@ class PersistenceAdapterTest {
         MySqlSupport.flywayFor(jdbcUrl).migrate()
 
         jdbc = JdbcOperations(MySqlSupport.dataSourceFor(jdbcUrl))
-        sectors = MySqlSectorRepository(jdbc, garageName = "sp-01")
+        sectors = MySqlSectorRepository(jdbc, GarageRegistry("sp-01", "America/Sao_Paulo", "BRL"))
         spots = MySqlSpotRepository(jdbc)
         sessions = MySqlParkingSessionRepository(jdbc)
         revenue = MySqlRevenueRepository(jdbc)

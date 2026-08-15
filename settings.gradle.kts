@@ -13,10 +13,3 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-
-include(
-    "domain",
-    "application",
-    "infrastructure",
-    "bootstrap",
-)

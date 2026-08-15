@@ -166,7 +166,7 @@ class GarageSynchronizationTest {
         readiness.status shouldBe HttpStatus.OK
         bodyOf(readiness)["status"] shouldBe "UP"
 
-        call(HttpRequest.GET<Any>("/revenue")).status shouldBe HttpStatus.NOT_FOUND
+        call(HttpRequest.GET<Any>("/revenue")).status shouldBe HttpStatus.OK
     }
 
     private companion object {

@@ -4,14 +4,18 @@ import com.teslapark.domain.error.DomainError
 import com.teslapark.domain.error.DomainResult
 import com.teslapark.domain.error.asSuccess
 import com.teslapark.domain.model.LicensePlate
+import com.teslapark.domain.model.Money
 import com.teslapark.domain.model.ParkingSession
+import com.teslapark.domain.model.SectorCode
 import com.teslapark.domain.port.ParkingSessionRepository
 import com.teslapark.infrastructure.persistence.mapper.toDomain
 import com.teslapark.infrastructure.persistence.mapper.toParkingSessionEntity
 import com.teslapark.infrastructure.persistence.mapper.toTimestamp
 import jakarta.inject.Singleton
 import java.sql.Connection
+import java.sql.Date
 import java.time.Duration
+import java.time.LocalDate
 
 private const val SELECT_SESSION =
     """
@@ -51,6 +55,22 @@ class MySqlParkingSessionRepository(
             connection.queryFirst("SELECT COUNT(*) AS open_sessions FROM parking_session WHERE active_plate IS NOT NULL") {
                 it.getInt("open_sessions")
             } ?: 0
+        }
+
+    override fun sumChargedOn(revenueDate: LocalDate): Map<SectorCode, Money> =
+        jdbc.readOnly { connection ->
+            connection
+                .query(
+                    """
+                    SELECT sec.code AS sector_code, COALESCE(SUM(ps.amount_charged), 0) AS charged
+                    FROM parking_session ps
+                    JOIN sector sec ON sec.id = ps.sector_id
+                    WHERE ps.revenue_date = ? AND ps.status = 'EXITED'
+                    GROUP BY sec.code
+                    """.trimIndent(),
+                    Date.valueOf(revenueDate),
+                ) { SectorCode(it.getString("sector_code")) to Money.of(it.getBigDecimal("charged")) }
+                .toMap()
         }
 
     private fun persist(

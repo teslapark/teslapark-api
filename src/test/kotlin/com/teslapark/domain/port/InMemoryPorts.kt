@@ -11,6 +11,7 @@ import com.teslapark.domain.model.GarageConfiguration
 import com.teslapark.domain.model.GarageConfigurationStatus
 import com.teslapark.domain.model.IdempotencyKey
 import com.teslapark.domain.model.LicensePlate
+import com.teslapark.domain.model.Money
 import com.teslapark.domain.model.ParkingSession
 import com.teslapark.domain.model.RevenueEntry
 import com.teslapark.domain.model.Sector
@@ -119,6 +120,12 @@ class InMemoryParkingSessionRepository : ParkingSessionRepository {
     }
 
     override fun countOpenSessions(): Int = sessions.values.count { !it.isClosed }
+
+    override fun sumChargedOn(revenueDate: LocalDate): Map<SectorCode, Money> =
+        sessions.values
+            .filter { it.revenueDate == revenueDate && it.amountCharged != null && it.sectorCode != null }
+            .groupBy { it.sectorCode!! }
+            .mapValues { (_, group) -> group.map { it.amountCharged!! }.reduce(Money::plus) }
 }
 
 class InMemoryRevenueRepository : RevenueRepository {

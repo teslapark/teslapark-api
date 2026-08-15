@@ -9,6 +9,8 @@ interface SpotRepository {
 
     fun lockFreeSpotAt(coordinates: Coordinates): Spot?
 
+    fun lockAnyFreeSpot(): Spot?
+
     fun occupy(
         spot: Spot,
         sessionId: Long,

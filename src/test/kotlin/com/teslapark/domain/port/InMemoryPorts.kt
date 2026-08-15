@@ -58,6 +58,8 @@ class InMemorySpotRepository : SpotRepository {
 
     override fun lockFreeSpotAt(coordinates: Coordinates): Spot? = findByCoordinates(coordinates)?.takeUnless { it.occupied }
 
+    override fun lockAnyFreeSpot(): Spot? = spots.values.firstOrNull { !it.occupied }
+
     override fun occupy(
         spot: Spot,
         sessionId: Long,

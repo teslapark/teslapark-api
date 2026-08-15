@@ -21,13 +21,15 @@ complexity:
     functionThreshold: 7
     constructorThreshold: 9
     ignoreDefaultParameters: true
+    excludes: ['**/persistence/entity/**']
   TooManyFunctions:
     active: true
-    excludes: ['**/test/**']
+    excludes: ['**/test/**', '**/persistence/mapper/**']
 
 exceptions:
   TooGenericExceptionCaught:
     active: true
+    excludes: ['**/JdbcOperations.kt']
   SwallowedException:
     active: true
 

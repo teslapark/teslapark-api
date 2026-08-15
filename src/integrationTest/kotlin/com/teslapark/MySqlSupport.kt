@@ -1,12 +1,16 @@
 package com.teslapark
 
+import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.utility.DockerImageName
 import java.sql.Connection
 import java.sql.DriverManager
+import javax.sql.DataSource
 
 object MySqlSupport {
+    private const val HIKARI_POOL_SIZE = 40
+
     private val container: MySQLContainer<*> by lazy {
         MySQLContainer(DockerImageName.parse("mysql:8.4"))
             .withDatabaseName("teslapark")
@@ -37,6 +41,14 @@ object MySqlSupport {
             .dataSource(jdbcUrl, container.username, container.password)
             .locations("classpath:db/migration")
             .load()
+
+    fun dataSourceFor(jdbcUrl: String): DataSource =
+        HikariDataSource().apply {
+            this.jdbcUrl = jdbcUrl
+            username = container.username
+            password = container.password
+            maximumPoolSize = HIKARI_POOL_SIZE
+        }
 
     fun datasourceProperties(jdbcUrl: String): Map<String, Any> =
         mapOf(

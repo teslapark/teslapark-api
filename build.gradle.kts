@@ -29,6 +29,15 @@ micronaut {
     }
 }
 
+val integrationTest: SourceSet =
+    sourceSets.create("integrationTest") {
+        compileClasspath += sourceSets.main.get().output
+        runtimeClasspath += sourceSets.main.get().output
+    }
+
+configurations["integrationTestImplementation"].extendsFrom(configurations.testImplementation.get())
+configurations["integrationTestRuntimeOnly"].extendsFrom(configurations.testRuntimeOnly.get())
+
 dependencies {
     implementation(libs.micronaut.http.server.netty)
     implementation(libs.micronaut.jackson.databind)
@@ -105,6 +114,20 @@ tasks.jacocoTestReport {
     }
 }
 
+val integrationTestTask =
+    tasks.register<Test>("integrationTest") {
+        description = "Runs the Testcontainers backed integration suite"
+        group = LifecycleBasePlugin.VERIFICATION_GROUP
+        testClassesDirs = integrationTest.output.classesDirs
+        classpath = integrationTest.runtimeClasspath
+        useJUnitPlatform()
+        shouldRunAfter(tasks.test)
+        testLogging {
+            events("passed", "skipped", "failed")
+            exceptionFormat = TestExceptionFormat.FULL
+        }
+    }
+
 tasks.check {
-    dependsOn(tasks.jacocoTestReport)
+    dependsOn(tasks.jacocoTestReport, integrationTestTask)
 }

@@ -1,0 +1,68 @@
+build:
+  maxIssues: 0
+  excludeCorrectable: false
+
+config:
+  validation: true
+  warningsAsErrors: false
+
+comments:
+  active: true
+  UndocumentedPublicClass:
+    active: false
+  UndocumentedPublicFunction:
+    active: false
+  UndocumentedPublicProperty:
+    active: false
+
+complexity:
+  LongParameterList:
+    active: true
+    functionThreshold: 7
+    constructorThreshold: 9
+    ignoreDefaultParameters: true
+  TooManyFunctions:
+    active: true
+    excludes: ['**/test/**']
+
+exceptions:
+  TooGenericExceptionCaught:
+    active: true
+  SwallowedException:
+    active: true
+
+performance:
+  SpreadOperator:
+    active: false
+
+naming:
+  FunctionNaming:
+    active: true
+    excludes: ['**/test/**']
+  MatchingDeclarationName:
+    active: true
+
+style:
+  MagicNumber:
+    active: true
+    excludes: ['**/test/**']
+    ignoreEnums: false
+    ignoreNumbers: ['-1', '0', '1', '2']
+  MaxLineLength:
+    active: true
+    maxLineLength: 140
+    excludes: ['**/test/**']
+  ReturnCount:
+    active: true
+    max: 3
+  ForbiddenComment:
+    active: true
+    comments:
+      - reason: 'Unresolved work must live in the backlog, not in the source'
+        value: 'TODO:'
+      - reason: 'Unresolved work must live in the backlog, not in the source'
+        value: 'FIXME:'
+  UnusedPrivateMember:
+    active: true
+  WildcardImport:
+    active: true

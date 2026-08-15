@@ -1,0 +1,7 @@
+endpoints:
+  health:
+    details-visible: NEVER
+
+logger:
+  levels:
+    com.teslapark: INFO

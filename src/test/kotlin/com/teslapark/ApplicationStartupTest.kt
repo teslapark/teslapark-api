@@ -11,6 +11,7 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import javax.sql.DataSource
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ApplicationStartupTest {
@@ -20,7 +21,13 @@ class ApplicationStartupTest {
 
     @BeforeAll
     fun startServer() {
-        server = ApplicationContext.run(EmbeddedServer::class.java, "test")
+        val jdbcUrl = MySqlSupport.createIsolatedDatabase("application_startup_test")
+        server =
+            ApplicationContext.run(
+                EmbeddedServer::class.java,
+                MySqlSupport.datasourceProperties(jdbcUrl),
+                "test",
+            )
         httpClient = HttpClient.create(server.url)
         client = httpClient.toBlocking()
     }
@@ -42,5 +49,19 @@ class ApplicationStartupTest {
 
         response.status shouldBe HttpStatus.OK
         response.body()["status"] shouldBe "UP"
+    }
+
+    @Test
+    fun `flyway migrates the schema during startup`() {
+        val dataSource = server.applicationContext.getBean(DataSource::class.java)
+
+        dataSource.connection.use { connection ->
+            connection.createStatement().use { statement ->
+                statement.executeQuery("SELECT COUNT(*) FROM flyway_schema_history WHERE success = TRUE").use { rows ->
+                    rows.next()
+                    (rows.getInt(1) > 0) shouldBe true
+                }
+            }
+        }
     }
 }

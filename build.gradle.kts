@@ -33,10 +33,16 @@ dependencies {
     implementation(libs.micronaut.http.server.netty)
     implementation(libs.micronaut.jackson.databind)
     implementation(libs.micronaut.management)
+    implementation(libs.micronaut.flyway)
+    implementation(libs.micronaut.jdbc.hikari)
     runtimeOnly(libs.snakeyaml)
+    runtimeOnly(libs.flyway.mysql)
+    runtimeOnly(libs.mysql.connector)
 
     testImplementation(libs.bundles.unitTest)
+    testImplementation(libs.bundles.integrationTest)
     testImplementation(libs.micronaut.http.client)
+    testImplementation(libs.flyway.core)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 

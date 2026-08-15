@@ -11,6 +11,7 @@ import com.teslapark.domain.port.SpotRepository
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import io.micronaut.context.ApplicationContext
 import io.micronaut.http.HttpRequest
 import io.micronaut.http.HttpResponse
@@ -122,7 +123,11 @@ class GarageSynchronizationTest {
 
         response.status shouldBe HttpStatus.SERVICE_UNAVAILABLE
         response.header("Retry-After").shouldNotBeNull()
-        bodyOf(response)["status"] shouldBe GarageConfigurationStatus.PENDING.name
+
+        val problem = response.getBody(String::class.java).orElse("")
+        problem shouldContain "garage-not-configured"
+        problem shouldContain "Garage configuration unavailable"
+        problem shouldContain "requestId"
     }
 
     @Test

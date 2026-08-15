@@ -1,8 +1,13 @@
 micronaut:
   application:
     name: teslapark-api
+  codec:
+    json:
+      additional-types:
+        - application/problem+json
   server:
     port: 3003
+    max-request-size: 64KB
   http:
     services:
       gate-control-system:
@@ -11,6 +16,16 @@ micronaut:
         read-timeout: 5s
 
 teslapark:
+  security:
+    enabled: ${SECURITY_ENABLED:false}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:false}
+    requests: 600
+    window: 1m
+  revenue:
+    reconciliation:
+      enabled: true
+      interval: 15m
   garage:
     name: ${GARAGE_NAME:sp-01}
     timezone: ${GARAGE_TIMEZONE:America/Sao_Paulo}

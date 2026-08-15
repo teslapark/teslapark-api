@@ -12,18 +12,22 @@ value class LicensePlate private constructor(
     override fun toString(): String = value
 
     companion object {
+        const val MAX_LENGTH = 16
+
+        private val ALLOWED = Regex("^[A-Z0-9-]{1,$MAX_LENGTH}$")
+
         operator fun invoke(raw: String): LicensePlate {
             val normalized = normalize(raw)
-            require(normalized.isNotEmpty()) { "license plate must not be blank" }
+            require(ALLOWED.matches(normalized)) { "license plate must be 1 to $MAX_LENGTH characters of A-Z, 0-9 or -" }
             return LicensePlate(normalized)
         }
 
-        fun parse(raw: String): DomainResult<LicensePlate> {
-            val normalized = normalize(raw)
-            return if (normalized.isEmpty()) {
-                DomainError.InvalidLicensePlate(raw).asFailure()
-            } else {
+        fun parse(raw: String?): DomainResult<LicensePlate> {
+            val normalized = normalize(raw.orEmpty())
+            return if (ALLOWED.matches(normalized)) {
                 LicensePlate(normalized).asSuccess()
+            } else {
+                DomainError.InvalidLicensePlate(raw.orEmpty().take(MAX_LENGTH)).asFailure()
             }
         }
 

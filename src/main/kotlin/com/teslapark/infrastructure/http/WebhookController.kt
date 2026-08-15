@@ -6,13 +6,15 @@ import com.teslapark.application.usecase.ProcessGateEvent
 import com.teslapark.domain.error.DomainError
 import com.teslapark.domain.error.DomainResult
 import com.teslapark.domain.event.GateEvent
+import com.teslapark.infrastructure.http.problem.ProblemDetailFactory
+import io.micronaut.http.HttpRequest
 import io.micronaut.http.HttpResponse
-import io.micronaut.http.HttpStatus
 import io.micronaut.http.MediaType
 import io.micronaut.http.annotation.Body
 import io.micronaut.http.annotation.Controller
 import io.micronaut.http.annotation.Post
 import io.micronaut.http.annotation.Produces
+import io.micronaut.http.context.ServerRequestContext
 import io.micronaut.scheduling.TaskExecutors
 import io.micronaut.scheduling.annotation.ExecuteOn
 
@@ -21,12 +23,13 @@ import io.micronaut.scheduling.annotation.ExecuteOn
 class WebhookController(
     private val processGateEvent: ProcessGateEvent,
     private val objectMapper: ObjectMapper,
+    private val problems: ProblemDetailFactory,
 ) {
     @Post
     @Produces(MediaType.APPLICATION_JSON)
     fun receive(
         @Body rawPayload: String,
-    ): HttpResponse<Map<String, Any?>> {
+    ): HttpResponse<*> {
         val request =
             runCatching { objectMapper.readValue(rawPayload, WebhookRequest::class.java) }
                 .getOrElse { return badRequest(DomainError.MalformedEventPayload("unreadable event payload")) }
@@ -40,7 +43,7 @@ class WebhookController(
     private fun respond(
         event: GateEvent,
         outcome: GateEventOutcome,
-    ): HttpResponse<Map<String, Any?>> {
+    ): HttpResponse<*> {
         val base =
             mutableMapOf<String, Any?>(
                 "event_type" to event.type.name,
@@ -65,7 +68,7 @@ class WebhookController(
                     base + mapOf("status" to "IGNORED", "anomaly" to outcome.anomaly.name, "detail" to outcome.detail),
                 )
 
-            is GateEventOutcome.Rejected -> rejected(base, outcome.error)
+            is GateEventOutcome.Rejected -> rejected(outcome.error)
         }
     }
 
@@ -90,29 +93,19 @@ class WebhookController(
         }
     }
 
-    private fun rejected(
-        base: Map<String, Any?>,
-        error: DomainError,
-    ): HttpResponse<Map<String, Any?>> =
+    private fun rejected(error: DomainError): HttpResponse<*> = problems.fromDomainError(currentRequest(), error, detailOf(error))
+
+    private fun badRequest(error: DomainError): HttpResponse<*> =
+        problems.fromDomainError(currentRequest(), error, "Invalid request parameters.")
+
+    private fun detailOf(error: DomainError): String =
         when (error) {
-            is DomainError.GarageFull ->
-                HttpResponse
-                    .status<Map<String, Any?>>(HttpStatus.CONFLICT)
-                    .body(base + mapOf("status" to "REJECTED", "title" to "Garage is full"))
-
+            is DomainError.GarageFull -> "Occupancy is 100%. Entry denied until a vehicle exits."
             is DomainError.ExitTimeBeforeEntryTime ->
-                HttpResponse
-                    .status<Map<String, Any?>>(HttpStatus.UNPROCESSABLE_ENTITY)
-                    .body(base + mapOf("status" to "REJECTED", "title" to "Invalid exit time"))
-
-            else ->
-                HttpResponse
-                    .status<Map<String, Any?>>(HttpStatus.CONFLICT)
-                    .body(base + mapOf("status" to "REJECTED", "title" to error.toString()))
+                "exit_time " + error.exitTime + " precedes entry_time " + error.entryTime + "."
+            else -> "The event could not be applied to the session."
         }
 
-    private fun badRequest(error: DomainError): HttpResponse<Map<String, Any?>> =
-        HttpResponse
-            .status<Map<String, Any?>>(HttpStatus.BAD_REQUEST)
-            .body(mapOf("status" to "REJECTED", "title" to "Validation failed", "detail" to error.toString()))
+    private fun currentRequest(): HttpRequest<*> =
+        ServerRequestContext.currentRequest<Any>().orElseThrow { IllegalStateException("no server request in scope") }
 }

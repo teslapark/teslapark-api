@@ -16,6 +16,9 @@ comments:
     active: false
 
 complexity:
+  CyclomaticComplexMethod:
+    active: true
+    ignoreSingleWhenExpression: true
   LongParameterList:
     active: true
     functionThreshold: 7

@@ -20,6 +20,7 @@ micronaut-http-server-netty = { module = "io.micronaut:micronaut-http-server-net
 micronaut-http-client = { module = "io.micronaut:micronaut-http-client" }
 micronaut-jackson-databind = { module = "io.micronaut:micronaut-jackson-databind" }
 micronaut-management = { module = "io.micronaut:micronaut-management" }
+micronaut-retry = { module = "io.micronaut:micronaut-retry" }
 micronaut-inject-kotlin = { module = "io.micronaut:micronaut-inject-kotlin" }
 micronaut-validation = { module = "io.micronaut.validation:micronaut-validation" }
 micronaut-validation-processor = { module = "io.micronaut.validation:micronaut-validation-processor" }

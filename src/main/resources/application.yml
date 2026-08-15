@@ -3,6 +3,25 @@ micronaut:
     name: teslapark-api
   server:
     port: 3003
+  http:
+    services:
+      gate-control-system:
+        url: ${GCS_BASE_URL:`http://localhost:3000`}
+        connect-timeout: 2s
+        read-timeout: 5s
+
+teslapark:
+  garage:
+    name: ${GARAGE_NAME:sp-01}
+    timezone: ${GARAGE_TIMEZONE:America/Sao_Paulo}
+    currency: ${GARAGE_CURRENCY:BRL}
+  gcs:
+    retry:
+      attempts: 3
+      delay: 200ms
+      multiplier: 2.0
+    circuit-breaker:
+      reset: 30s
 
 datasources:
   default:

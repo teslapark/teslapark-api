@@ -57,7 +57,8 @@ sealed interface DomainError {
 
     data class DurationLimitExceeded(
         val code: String,
-        val limitMinutes: Int,
+        val limitMinutes: Long,
+        val stayMinutes: Long,
     ) : DomainError
 }
 

@@ -9,6 +9,7 @@ import com.teslapark.domain.model.SessionAnomaly
 import com.teslapark.domain.policy.OccupancyPolicy
 import com.teslapark.domain.port.AnomalyRepository
 import com.teslapark.domain.port.ClockProvider
+import com.teslapark.domain.port.MetricsPublisher
 import com.teslapark.domain.port.ParkingSessionRepository
 import com.teslapark.domain.port.SectorRepository
 import jakarta.inject.Singleton
@@ -18,6 +19,7 @@ class HandleEntryEvent(
     private val sessions: ParkingSessionRepository,
     private val sectors: SectorRepository,
     private val anomalies: AnomalyRepository,
+    private val metrics: MetricsPublisher,
     private val clock: ClockProvider,
 ) {
     fun execute(event: GateEvent.EntryEvent): GateEventOutcome {
@@ -26,9 +28,13 @@ class HandleEntryEvent(
         }
 
         val occupancy = Occupancy(sessions.countOpenSessions(), sectors.totalCapacity())
+        metrics.occupancyObserved(occupancy)
 
         return when (val admission = OccupancyPolicy.admit(occupancy)) {
-            is DomainResult.Failure -> GateEventOutcome.Rejected(admission.error)
+            is DomainResult.Failure -> {
+                metrics.entryDenied()
+                GateEventOutcome.Rejected(admission.error)
+            }
 
             is DomainResult.Success -> {
                 val session =
@@ -41,8 +47,13 @@ class HandleEntryEvent(
 
                 when (val saved = sessions.save(session)) {
                     is DomainResult.Failure -> recordDuplicateEntry(event, sessionId = null)
-                    is DomainResult.Success ->
+                    is DomainResult.Success -> {
+                        metrics.pricingTierApplied(admission.value)
+                        metrics.occupancyObserved(
+                            Occupancy(sessions.countOpenSessions(), sectors.totalCapacity()),
+                        )
                         GateEventOutcome.Accepted(session = saved.value, occupancyRate = occupancy.rate)
+                    }
                 }
             }
         }
@@ -61,6 +72,7 @@ class HandleEntryEvent(
                 description = "entry received while a session is already open",
             ),
         )
+        metrics.anomalyDetected(AnomalyType.DUPLICATE_ENTRY)
         return GateEventOutcome.Ignored(AnomalyType.DUPLICATE_ENTRY, "a session is already open for this plate")
     }
 }

@@ -33,6 +33,8 @@ object MySqlSupport {
         return container.jdbcUrl.replace("/${container.databaseName}?", "/$name?")
     }
 
+    fun jdbcUrlOf(name: String): String = container.jdbcUrl.replace("/${container.databaseName}?", "/$name?")
+
     fun connectionTo(jdbcUrl: String): Connection = DriverManager.getConnection(jdbcUrl, container.username, container.password)
 
     fun flywayFor(jdbcUrl: String): Flyway =

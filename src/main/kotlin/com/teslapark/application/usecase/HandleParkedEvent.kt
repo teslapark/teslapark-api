@@ -6,6 +6,7 @@ import com.teslapark.domain.model.AnomalyType
 import com.teslapark.domain.model.SessionAnomaly
 import com.teslapark.domain.port.AnomalyRepository
 import com.teslapark.domain.port.ClockProvider
+import com.teslapark.domain.port.MetricsPublisher
 import com.teslapark.domain.port.ParkingSessionRepository
 import com.teslapark.domain.port.SpotRepository
 import jakarta.inject.Singleton
@@ -15,6 +16,7 @@ class HandleParkedEvent(
     private val sessions: ParkingSessionRepository,
     private val spots: SpotRepository,
     private val anomalies: AnomalyRepository,
+    private val metrics: MetricsPublisher,
     private val clock: ClockProvider,
 ) {
     fun execute(event: GateEvent.ParkedEvent): GateEventOutcome {
@@ -60,6 +62,7 @@ class HandleParkedEvent(
                 description = detail,
             ),
         )
+        metrics.anomalyDetected(type)
         return GateEventOutcome.Ignored(type, detail)
     }
 }

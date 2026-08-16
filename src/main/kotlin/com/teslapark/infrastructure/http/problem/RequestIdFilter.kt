@@ -15,6 +15,7 @@ class RequestIdFilter {
         val requestId = request.headers[HEADER]?.takeIf { it.isNotBlank() && it.length <= MAX_LENGTH } ?: newRequestId()
         request.setAttribute(ATTRIBUTE, requestId)
         MDC.put(MDC_KEY, requestId)
+        MDC.put(TRACE_KEY, requestId)
     }
 
     @ResponseFilter
@@ -24,11 +25,13 @@ class RequestIdFilter {
     ) {
         requestIdOf(request)?.let { response.header(HEADER, it) }
         MDC.remove(MDC_KEY)
+        MDC.remove(TRACE_KEY)
     }
 
     companion object {
         const val HEADER = "X-Request-Id"
         const val MDC_KEY = "requestId"
+        const val TRACE_KEY = "traceId"
 
         private const val ATTRIBUTE = "teslapark.requestId"
         private const val MAX_LENGTH = 128

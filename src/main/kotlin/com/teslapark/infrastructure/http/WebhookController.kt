@@ -17,6 +17,8 @@ import io.micronaut.http.annotation.Produces
 import io.micronaut.http.context.ServerRequestContext
 import io.micronaut.scheduling.TaskExecutors
 import io.micronaut.scheduling.annotation.ExecuteOn
+import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 
 @Controller("/webhook")
 @ExecuteOn(TaskExecutors.BLOCKING)
@@ -25,6 +27,8 @@ class WebhookController(
     private val objectMapper: ObjectMapper,
     private val problems: ProblemDetailFactory,
 ) {
+    private val logger = LoggerFactory.getLogger(WebhookController::class.java)
+
     @Post
     @Produces(MediaType.APPLICATION_JSON)
     fun receive(
@@ -36,9 +40,40 @@ class WebhookController(
 
         return when (val event = request.toGateEvent()) {
             is DomainResult.Failure -> badRequest(event.error)
-            is DomainResult.Success -> respond(event.value, processGateEvent.execute(event.value, rawPayload))
+            is DomainResult.Success -> process(event.value, rawPayload)
         }
     }
+
+    private fun process(
+        event: GateEvent,
+        rawPayload: String,
+    ): HttpResponse<*> {
+        MDC.put(EVENT_TYPE_KEY, event.type.name)
+        try {
+            val outcome = processGateEvent.execute(event, rawPayload)
+            sessionIdOf(outcome)?.let { MDC.put(SESSION_ID_KEY, it.toString()) }
+            logger.info("gate event {} resolved as {}", event.type, statusOf(outcome))
+            return respond(event, outcome)
+        } finally {
+            MDC.remove(EVENT_TYPE_KEY)
+            MDC.remove(SESSION_ID_KEY)
+        }
+    }
+
+    private fun sessionIdOf(outcome: GateEventOutcome): Long? =
+        when (outcome) {
+            is GateEventOutcome.Accepted -> outcome.session.id
+            is GateEventOutcome.Duplicate -> outcome.sessionId
+            else -> null
+        }
+
+    private fun statusOf(outcome: GateEventOutcome): String =
+        when (outcome) {
+            is GateEventOutcome.Accepted -> "ACCEPTED"
+            is GateEventOutcome.Duplicate -> "DUPLICATE"
+            is GateEventOutcome.Ignored -> "IGNORED"
+            is GateEventOutcome.Rejected -> "REJECTED"
+        }
 
     private fun respond(
         event: GateEvent,
@@ -108,4 +143,9 @@ class WebhookController(
 
     private fun currentRequest(): HttpRequest<*> =
         ServerRequestContext.currentRequest<Any>().orElseThrow { IllegalStateException("no server request in scope") }
+
+    private companion object {
+        const val EVENT_TYPE_KEY = "eventType"
+        const val SESSION_ID_KEY = "sessionId"
+    }
 }

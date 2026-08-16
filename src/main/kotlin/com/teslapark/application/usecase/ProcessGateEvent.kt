@@ -5,6 +5,8 @@ import com.teslapark.domain.event.GateEvent
 import com.teslapark.domain.model.ProcessingStatus
 import com.teslapark.domain.model.WebhookEventRecord
 import com.teslapark.domain.port.ClockProvider
+import com.teslapark.domain.port.EventResult
+import com.teslapark.domain.port.MetricsPublisher
 import com.teslapark.domain.port.TransactionBoundary
 import com.teslapark.domain.port.WebhookEventRepository
 import jakarta.inject.Singleton
@@ -17,6 +19,7 @@ class ProcessGateEvent(
     private val handleParked: HandleParkedEvent,
     private val handleExit: HandleExitEvent,
     private val transaction: TransactionBoundary,
+    private val metrics: MetricsPublisher,
     private val clock: ClockProvider,
 ) {
     fun execute(
@@ -36,11 +39,15 @@ class ProcessGateEvent(
 
         val registered =
             when (val outcome = webhookEvents.registerIfAbsent(record)) {
-                is DomainResult.Failure -> return GateEventOutcome.Duplicate(webhookEvents.findBy(key)?.sessionId)
+                is DomainResult.Failure -> {
+                    metrics.webhookEventReceived(event.type, EventResult.DUPLICATE)
+                    return GateEventOutcome.Duplicate(webhookEvents.findBy(key)?.sessionId)
+                }
                 is DomainResult.Success -> outcome.value
             }
 
         val result = transaction.inTransaction { dispatch(event) }
+        metrics.webhookEventReceived(event.type, resultOf(result))
 
         if (result is GateEventOutcome.Rejected) {
             webhookEvents.discard(key)
@@ -75,6 +82,14 @@ class ProcessGateEvent(
             is GateEventOutcome.Accepted -> outcome.session.id
             is GateEventOutcome.Duplicate -> outcome.sessionId
             else -> null
+        }
+
+    private fun resultOf(outcome: GateEventOutcome): EventResult =
+        when (outcome) {
+            is GateEventOutcome.Accepted -> EventResult.PROCESSED
+            is GateEventOutcome.Duplicate -> EventResult.DUPLICATE
+            is GateEventOutcome.Ignored -> EventResult.IGNORED
+            is GateEventOutcome.Rejected -> EventResult.REJECTED
         }
 
     private fun processingStatusOf(outcome: GateEventOutcome): ProcessingStatus =

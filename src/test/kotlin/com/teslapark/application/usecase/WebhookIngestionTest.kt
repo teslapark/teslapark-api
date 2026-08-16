@@ -10,6 +10,8 @@ import com.teslapark.domain.model.Sector
 import com.teslapark.domain.model.SectorCode
 import com.teslapark.domain.model.SessionStatus
 import com.teslapark.domain.model.Spot
+import com.teslapark.domain.policy.OccupancyTier
+import com.teslapark.domain.port.EventResult
 import com.teslapark.domain.port.FixedClockProvider
 import com.teslapark.domain.port.InMemoryAnomalyRepository
 import com.teslapark.domain.port.InMemoryParkingSessionRepository
@@ -18,6 +20,7 @@ import com.teslapark.domain.port.InMemorySectorRepository
 import com.teslapark.domain.port.InMemorySpotRepository
 import com.teslapark.domain.port.InMemoryTransactionBoundary
 import com.teslapark.domain.port.InMemoryWebhookEventRepository
+import com.teslapark.domain.port.RecordingMetricsPublisher
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -39,6 +42,7 @@ class WebhookIngestionTest {
     private val anomalies = InMemoryAnomalyRepository()
     private val webhookEvents = InMemoryWebhookEventRepository()
     private val transaction = InMemoryTransactionBoundary()
+    private val metrics = RecordingMetricsPublisher()
 
     private val sectorA =
         Sector(
@@ -54,10 +58,11 @@ class WebhookIngestionTest {
         ProcessGateEvent(
             idempotencyGuard = EventIdempotencyGuard(),
             webhookEvents = webhookEvents,
-            handleEntry = HandleEntryEvent(sessions, sectors, anomalies, clock),
-            handleParked = HandleParkedEvent(sessions, spots, anomalies, clock),
-            handleExit = HandleExitEvent(sessions, sectors, spots, revenue, anomalies, clock),
+            handleEntry = HandleEntryEvent(sessions, sectors, anomalies, metrics, clock),
+            handleParked = HandleParkedEvent(sessions, spots, anomalies, metrics, clock),
+            handleExit = HandleExitEvent(sessions, sectors, spots, revenue, anomalies, metrics, clock),
             transaction = transaction,
+            metrics = metrics,
             clock = clock,
         )
 
@@ -86,6 +91,13 @@ class WebhookIngestionTest {
         exited.charge!!.chargeableHours shouldBe 3
         exited.charge!!.amount shouldBe Money.of("109.35")
         revenue.findBy(sectorA.code, clock.localDateOf(exit().exitTime))!!.total shouldBe Money.of("109.35")
+
+        metrics.webhookEvents.map { it.second } shouldBe
+            listOf(EventResult.PROCESSED, EventResult.PROCESSED, EventResult.PROCESSED)
+        metrics.tiers shouldBe listOf(OccupancyTier.LOW)
+        metrics.revenues.single().second shouldBe Money.of("109.35")
+        metrics.stays.single() shouldBe Duration.ofMinutes(130)
+        metrics.lastOccupancy!!.occupiedSpots shouldBe 0
     }
 
     @Test
@@ -104,6 +116,7 @@ class WebhookIngestionTest {
 
         outcome.anomaly shouldBe AnomalyType.EXIT_WITHOUT_ENTRY
         anomalies.countOfType(AnomalyType.EXIT_WITHOUT_ENTRY) shouldBe 1
+        metrics.anomalies shouldBe listOf(AnomalyType.EXIT_WITHOUT_ENTRY)
         revenue.findAllOn(clock.today()) shouldBe emptyList()
     }
 
@@ -150,6 +163,8 @@ class WebhookIngestionTest {
 
         send(exit()).shouldBeInstanceOf<GateEventOutcome.Accepted>()
         send(entry(LicensePlate("ZUL0002"))).shouldBeInstanceOf<GateEventOutcome.Accepted>()
+
+        metrics.deniedEntries shouldBe 1
     }
 
     @Test

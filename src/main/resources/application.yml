@@ -14,6 +14,26 @@ micronaut:
         url: ${GCS_BASE_URL:`http://localhost:3000`}
         connect-timeout: 2s
         read-timeout: 5s
+  metrics:
+    enabled: true
+    export:
+      prometheus:
+        enabled: true
+        step: 10s
+        descriptions: true
+    binders:
+      jvm:
+        enabled: true
+      web:
+        enabled: true
+      uptime:
+        enabled: true
+      processor:
+        enabled: true
+      files:
+        enabled: true
+      jdbc:
+        enabled: true
 
 teslapark:
   security:

@@ -10,6 +10,7 @@ import com.teslapark.domain.model.SessionAnomaly
 import com.teslapark.domain.policy.PricingPolicy
 import com.teslapark.domain.port.AnomalyRepository
 import com.teslapark.domain.port.ClockProvider
+import com.teslapark.domain.port.MetricsPublisher
 import com.teslapark.domain.port.ParkingSessionRepository
 import com.teslapark.domain.port.RevenueRepository
 import com.teslapark.domain.port.SectorRepository
@@ -23,6 +24,7 @@ class HandleExitEvent(
     private val spots: SpotRepository,
     private val revenue: RevenueRepository,
     private val anomalies: AnomalyRepository,
+    private val metrics: MetricsPublisher,
     private val clock: ClockProvider,
 ) {
     fun execute(event: GateEvent.ExitEvent): GateEventOutcome {
@@ -53,6 +55,12 @@ class HandleExitEvent(
             is DomainResult.Failure -> GateEventOutcome.Rejected(saved.error)
             is DomainResult.Success -> {
                 revenue.accumulate(RevenueEntry(billingSector.code, revenueDate, charge.amount))
+                metrics.revenueCollected(billingSector.code, charge.amount)
+                metrics.sessionCompleted(exited.stay!!)
+                metrics.occupancyObserved(
+                    com.teslapark.domain.model
+                        .Occupancy(sessions.countOpenSessions(), sectors.totalCapacity()),
+                )
                 GateEventOutcome.Accepted(session = saved.value, charge = charge)
             }
         }
@@ -84,6 +92,7 @@ class HandleExitEvent(
                 description = detail,
             ),
         )
+        metrics.anomalyDetected(type)
         return GateEventOutcome.Ignored(type, detail)
     }
 }

@@ -1,5 +1,6 @@
 package com.teslapark.domain.port
 
+import com.teslapark.domain.event.EventResult
 import com.teslapark.domain.event.GateEventType
 import com.teslapark.domain.model.AnomalyType
 import com.teslapark.domain.model.Money
@@ -7,13 +8,6 @@ import com.teslapark.domain.model.Occupancy
 import com.teslapark.domain.model.SectorCode
 import com.teslapark.domain.policy.OccupancyTier
 import java.time.Duration
-
-enum class EventResult {
-    PROCESSED,
-    DUPLICATE,
-    IGNORED,
-    REJECTED,
-}
 
 interface MetricsPublisher {
     fun webhookEventReceived(

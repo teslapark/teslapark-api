@@ -9,6 +9,7 @@ detekt = "1.23.7"
 junit = "5.11.4"
 junitPlatform = "1.11.4"
 kotest = "5.9.1"
+konsist = "0.17.3"
 mockk = "1.13.16"
 testcontainers = "1.20.4"
 flyway = "10.20.1"
@@ -44,6 +45,7 @@ junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", vers
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitPlatform" }
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
 testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
 testcontainers-mysql = { module = "org.testcontainers:mysql", version.ref = "testcontainers" }
 

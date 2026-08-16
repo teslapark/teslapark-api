@@ -1,11 +1,11 @@
 package com.teslapark.application.usecase
 
 import com.teslapark.domain.error.DomainResult
+import com.teslapark.domain.event.EventResult
 import com.teslapark.domain.event.GateEvent
 import com.teslapark.domain.model.ProcessingStatus
 import com.teslapark.domain.model.WebhookEventRecord
 import com.teslapark.domain.port.ClockProvider
-import com.teslapark.domain.port.EventResult
 import com.teslapark.domain.port.MetricsPublisher
 import com.teslapark.domain.port.TransactionBoundary
 import com.teslapark.domain.port.WebhookEventRepository

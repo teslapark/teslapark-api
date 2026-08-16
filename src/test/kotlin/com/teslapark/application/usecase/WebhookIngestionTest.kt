@@ -1,6 +1,7 @@
 package com.teslapark.application.usecase
 
 import com.teslapark.domain.error.DomainError
+import com.teslapark.domain.event.EventResult
 import com.teslapark.domain.event.GateEvent
 import com.teslapark.domain.model.AnomalyType
 import com.teslapark.domain.model.Coordinates
@@ -11,7 +12,6 @@ import com.teslapark.domain.model.SectorCode
 import com.teslapark.domain.model.SessionStatus
 import com.teslapark.domain.model.Spot
 import com.teslapark.domain.policy.OccupancyTier
-import com.teslapark.domain.port.EventResult
 import com.teslapark.domain.port.FixedClockProvider
 import com.teslapark.domain.port.InMemoryAnomalyRepository
 import com.teslapark.domain.port.InMemoryParkingSessionRepository

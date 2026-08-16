@@ -4,6 +4,7 @@ import com.teslapark.domain.error.DomainError
 import com.teslapark.domain.error.DomainResult
 import com.teslapark.domain.error.asFailure
 import com.teslapark.domain.error.asSuccess
+import com.teslapark.domain.event.EventResult
 import com.teslapark.domain.event.GateEventType
 import com.teslapark.domain.model.AnomalyType
 import com.teslapark.domain.model.Coordinates

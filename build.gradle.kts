@@ -55,6 +55,7 @@ dependencies {
     runtimeOnly(libs.logback.json.classic)
 
     testImplementation(libs.bundles.unitTest)
+    testImplementation(libs.konsist)
     testImplementation(libs.bundles.integrationTest)
     testImplementation(libs.flyway.core)
     testRuntimeOnly(libs.junit.platform.launcher)
@@ -133,6 +134,65 @@ val integrationTestTask =
         }
     }
 
+val executionDataFiles = fileTree(layout.buildDirectory).include("jacoco/*.exec")
+
+val jacocoAggregatedReport =
+    tasks.register<JacocoReport>("jacocoAggregatedReport") {
+        description = "Merges unit and integration coverage into a single report"
+        group = LifecycleBasePlugin.VERIFICATION_GROUP
+        dependsOn(tasks.test, integrationTestTask)
+        executionData.setFrom(executionDataFiles)
+        sourceSets(sourceSets.main.get())
+        reports {
+            xml.required.set(true)
+            html.required.set(true)
+        }
+    }
+
+val globalCoverageGate =
+    tasks.register<JacocoCoverageVerification>("jacocoGlobalCoverageGate") {
+        description = "Fails the build when global line coverage drops below the agreed floor"
+        group = LifecycleBasePlugin.VERIFICATION_GROUP
+        dependsOn(jacocoAggregatedReport)
+        executionData.setFrom(executionDataFiles)
+        sourceSets(sourceSets.main.get())
+        violationRules {
+            rule {
+                limit {
+                    counter = "LINE"
+                    value = "COVEREDRATIO"
+                    minimum = "0.80".toBigDecimal()
+                }
+            }
+        }
+    }
+
+val domainCoverageGate =
+    tasks.register<JacocoCoverageVerification>("jacocoDomainCoverageGate") {
+        description = "Fails the build when the domain drops below the agreed floor"
+        group = LifecycleBasePlugin.VERIFICATION_GROUP
+        dependsOn(jacocoAggregatedReport)
+        executionData.setFrom(executionDataFiles)
+        sourceSets(sourceSets.main.get())
+        classDirectories.setFrom(
+            files(
+                sourceSets.main
+                    .get()
+                    .output.classesDirs
+                    .map { classes -> fileTree(classes) { include("com/teslapark/domain/**") } },
+            ),
+        )
+        violationRules {
+            rule {
+                limit {
+                    counter = "LINE"
+                    value = "COVEREDRATIO"
+                    minimum = "0.90".toBigDecimal()
+                }
+            }
+        }
+    }
+
 tasks.check {
-    dependsOn(tasks.jacocoTestReport, integrationTestTask)
+    dependsOn(tasks.jacocoTestReport, integrationTestTask, globalCoverageGate, domainCoverageGate)
 }

@@ -6,9 +6,13 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo
 import com.teslapark.domain.error.DomainError
 import com.teslapark.domain.error.DomainResult
 import com.teslapark.domain.error.asFailure
+import com.teslapark.domain.error.asSuccess
 import com.teslapark.domain.event.GateEvent
 import com.teslapark.domain.model.LicensePlate
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
@@ -28,5 +32,18 @@ sealed class WebhookRequest {
     protected fun plateOf(raw: String?): DomainResult<LicensePlate> =
         raw?.let { LicensePlate.parse(it) } ?: DomainError.InvalidLicensePlate("").asFailure()
 
-    protected fun instantOf(raw: String?): Instant? = raw?.let { runCatching { Instant.parse(it) }.getOrNull() }
+    protected fun instantOf(
+        field: String,
+        raw: String?,
+    ): DomainResult<Instant> {
+        if (raw.isNullOrBlank()) return DomainError.MissingEventField(field).asFailure()
+
+        return parsedInstantOf(raw)?.asSuccess()
+            ?: DomainError.MalformedEventPayload("$field must be an ISO-8601 timestamp").asFailure()
+    }
+
+    private fun parsedInstantOf(raw: String): Instant? =
+        runCatching { OffsetDateTime.parse(raw).toInstant() }
+            .recoverCatching { LocalDateTime.parse(raw).toInstant(ZoneOffset.UTC) }
+            .getOrNull()
 }

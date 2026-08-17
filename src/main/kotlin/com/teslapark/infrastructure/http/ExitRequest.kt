@@ -4,9 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAlias
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.teslapark.domain.error.DomainError
 import com.teslapark.domain.error.DomainResult
-import com.teslapark.domain.error.asFailure
 import com.teslapark.domain.error.asSuccess
 import com.teslapark.domain.event.GateEvent
 
@@ -21,7 +19,10 @@ class ExitRequest
             val plate = plateOf(licensePlate)
             if (plate is DomainResult.Failure) return plate
 
-            val time = instantOf(exitTime) ?: return DomainError.MissingEventField("exit_time").asFailure()
-            return GateEvent.ExitEvent((plate as DomainResult.Success).value, time).asSuccess()
+            return when (val time = instantOf("exit_time", exitTime)) {
+                is DomainResult.Failure -> time
+                is DomainResult.Success ->
+                    GateEvent.ExitEvent((plate as DomainResult.Success).value, time.value).asSuccess()
+            }
         }
     }

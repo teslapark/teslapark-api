@@ -350,7 +350,7 @@ Ao mesmo tempo, o sistema tem **duas bordas de entrada assimétricas** (webhook 
 | Fato do problema | O que a hexagonal resolve |
 |---|---|
 | A configuração da garagem vem de um **sistema legado externo (GCS)**, com ciclo de vida próprio | `GarageConfigProvider` é uma porta; o GCS é um adaptador substituível por arquivo ou outro serviço sem tocar o núcleo |
-| O preço dinâmico é a regra mais provável de mudar | `PricingPolicy` isolada, com testes tabelados cobrindo as quatro faixas e as bordas exatas (24,99% / 25% / 50% / 75% / 100%) |
+| O preço dinâmico é a regra mais provável de mudar | `PricingPolicy` isolada, com testes tabelados cobrindo as quatro faixas e as bordas exatas dos dois lados de cada limite (25% / 25,01% / 50% / 50,01% / 75% / 75,01% / 100%) |
 | Eventos chegam duplicados e fora de ordem | Idempotência e ordenação vivem na camada de aplicação; o domínio só conhece transições válidas |
 | Duas bordas de entrada (webhook e REST) sobre as mesmas regras | Ambas chamam os mesmos casos de uso; zero duplicação de regra |
 | Testar preço não pode exigir MySQL | Domínio puro → testes de milissegundos; Testcontainers fica só para os adaptadores |
@@ -735,7 +735,7 @@ Content-Type: application/json
 }
 ```
 
-> **Cálculo do exemplo:** 130 min > 30 min de franquia → cobrança integral. `ceil(130/60) = 3` horas. `3 × 40,50 × 1,000 = 121,50`. Multiplicador 1,000 porque a lotação no `ENTRY` estava entre 25% e 50%.
+> **Cálculo do exemplo:** 130 min > 30 min de franquia → cobrança integral. `ceil(130/60) = 3` horas. `3 × 40,50 × 1,000 = 121,50`. Multiplicador 1,000 porque a lotação no `ENTRY` estava acima de 25% e até 50%.
 
 **Response `200 OK` — dentro da franquia de 30 minutos**
 
@@ -1222,11 +1222,11 @@ Domínio sem framework roda em milissegundos. Casos obrigatórios:
 
 | Lotação | Faixa | Multiplicador |
 |---:|---|---:|
-| 0% / 24,99% | < 25% | **0,90** (−10%) |
-| 25,00% / 49,99% | 25%–50% | **1,00** |
-| 50,00% / 74,99% | 50%–75% | **1,10** (+10%) |
-| 75,00% / 99,99% | 75%–100% | **1,25** (+25%) |
-| 100% | Lotada | Entrada bloqueada |
+| 0% / 24,99% / 25,00% | ≤ 25% | **0,90** (−10%) |
+| 25,01% / 49,99% / 50,00% | > 25% e ≤ 50% | **1,00** |
+| 50,01% / 74,99% / 75,00% | > 50% e ≤ 75% | **1,10** (+10%) |
+| 75,01% / 99,99% | > 75% e < 100% | **1,25** (+25%) |
+| 100% | Lotada | **1,25**, entrada bloqueada |
 
 > As bordas são o que quebra na prática. Cada linha vira um teste parametrizado — a tabela acima **é** a especificação executável.
 

@@ -150,13 +150,15 @@ A primeira hora é cobrada integralmente e o arredondamento é sempre para cima.
 **Preço dinâmico** — a lotação é medida no instante da entrada e o multiplicador fica congelado na
 sessão, então o preço vigente na entrada é o preço cobrado, e o valor é reproduzível e auditável.
 
+As faixas são fechadas no limite superior: o valor do limite pertence à faixa mais barata.
+
 | Lotação | Faixa | Multiplicador |
 |---|---|---|
-| `< 25%` | `LOW` | `0,90` |
-| `25% – 50%` | `NORMAL` | `1,00` |
-| `50% – 75%` | `HIGH` | `1,10` |
-| `75% – 100%` | `PEAK` | `1,25` |
-| `= 100%` | `FULL` | entrada bloqueada |
+| `≤ 25%` | `LOW` | `0,90` |
+| `> 25%` e `≤ 50%` | `NORMAL` | `1,00` |
+| `> 50%` e `≤ 75%` | `HIGH` | `1,10` |
+| `> 75%` e `< 100%` | `PEAK` | `1,25` |
+| `= 100%` | `FULL` | `1,25`, entrada bloqueada |
 
 **Lotação** — a cancela é única, então a decisão de permitir entrada é **global à garagem**, nunca
 por setor. Com 100% de ocupação a garagem fecha; a primeira saída reabre.

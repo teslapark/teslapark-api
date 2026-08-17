@@ -248,11 +248,11 @@ senão                              → chargeableHours = ceil(duration em minut
 
 | Lotação | Tier | Multiplicador |
 |---|---|---|
-| `< 25%` | `LOW` | `0.90` |
-| `>= 25%` e `< 50%` | `NORMAL` | `1.00` |
-| `>= 50%` e `< 75%` | `HIGH` | `1.10` |
-| `>= 75%` e `< 100%` | `PEAK` | `1.25` |
-| `= 100%` | `FULL` | Entrada bloqueada |
+| `<= 25%` | `LOW` | `0.90` |
+| `> 25%` e `<= 50%` | `NORMAL` | `1.00` |
+| `> 50%` e `<= 75%` | `HIGH` | `1.10` |
+| `> 75%` e `< 100%` | `PEAK` | `1.25` |
+| `= 100%` | `FULL` | `1.25`, entrada bloqueada |
 
 **Regra de lotação:** com 100% de ocupação a garagem é fechada para novas entradas; a primeira saída reabre. A avaliação é **global** (cancela única), nunca por setor.
 
@@ -268,7 +268,7 @@ senão                              → chargeableHours = ceil(duration em minut
 | Permanência longa | 130 min | `121.50` |
 | Precisão decimal | base `4.10`, 3h, `1.10` | `13.53` |
 
-Bordas de tier obrigatórias: `0%`, `24.99%`, `25.00%`, `49.99%`, `50.00%`, `74.99%`, `75.00%`, `99.99%`, `100%`.
+Bordas de tier obrigatórias — as faixas são fechadas no limite superior, então cada limite exige os dois lados: `0%`, `24.99%`, `25.00%`, `25.01%`, `49.99%`, `50.00%`, `50.01%`, `74.99%`, `75.00%`, `75.01%`, `99.99%`, `100%`.
 
 **Aceite:** cobertura do pacote `domain/policy` acima de 95%; nenhum literal numérico solto na implementação.
 

@@ -14,18 +14,18 @@ enum class OccupancyTier(
     ;
 
     companion object {
-        private val NORMAL_FLOOR = BigDecimal("0.25")
-        private val HIGH_FLOOR = BigDecimal("0.50")
-        private val PEAK_FLOOR = BigDecimal("0.75")
-        private val FULL_FLOOR = BigDecimal.ONE
+        private val LOW_CEILING = BigDecimal("0.25")
+        private val NORMAL_CEILING = BigDecimal("0.50")
+        private val HIGH_CEILING = BigDecimal("0.75")
+        private val FULL_RATE = BigDecimal.ONE
 
         fun of(occupancyRate: BigDecimal): OccupancyTier =
             when {
-                occupancyRate >= FULL_FLOOR -> FULL
-                occupancyRate >= PEAK_FLOOR -> PEAK
-                occupancyRate >= HIGH_FLOOR -> HIGH
-                occupancyRate >= NORMAL_FLOOR -> NORMAL
-                else -> LOW
+                occupancyRate >= FULL_RATE -> FULL
+                occupancyRate <= LOW_CEILING -> LOW
+                occupancyRate <= NORMAL_CEILING -> NORMAL
+                occupancyRate <= HIGH_CEILING -> HIGH
+                else -> PEAK
             }
     }
 }

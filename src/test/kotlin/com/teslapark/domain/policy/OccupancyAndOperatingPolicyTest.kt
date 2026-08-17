@@ -36,11 +36,14 @@ class OccupancyAndOperatingPolicyTest {
     @CsvSource(
         "0.0000, LOW",
         "0.2499, LOW",
-        "0.2500, NORMAL",
+        "0.2500, LOW",
+        "0.2501, NORMAL",
         "0.4999, NORMAL",
-        "0.5000, HIGH",
+        "0.5000, NORMAL",
+        "0.5001, HIGH",
         "0.7499, HIGH",
-        "0.7500, PEAK",
+        "0.7500, HIGH",
+        "0.7501, PEAK",
         "0.9999, PEAK",
         "1.0000, FULL",
     )
@@ -75,7 +78,8 @@ class OccupancyAndOperatingPolicyTest {
 
     @Test
     fun `occupancy is evaluated globally and never per sector`() {
-        occupancyPolicy.tierFor(Occupancy(occupiedSpots = 15, totalCapacity = 30)) shouldBe OccupancyTier.HIGH
+        occupancyPolicy.tierFor(Occupancy(occupiedSpots = 15, totalCapacity = 30)) shouldBe OccupancyTier.NORMAL
+        occupancyPolicy.tierFor(Occupancy(occupiedSpots = 16, totalCapacity = 30)) shouldBe OccupancyTier.HIGH
         occupancyPolicy.tierFor(Occupancy.empty(totalCapacity = 30)) shouldBe OccupancyTier.LOW
     }
 

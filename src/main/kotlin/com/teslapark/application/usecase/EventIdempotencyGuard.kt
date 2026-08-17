@@ -2,11 +2,14 @@ package com.teslapark.application.usecase
 
 import com.teslapark.domain.event.GateEvent
 import com.teslapark.domain.model.IdempotencyKey
+import com.teslapark.domain.port.ParkingSessionRepository
 import jakarta.inject.Singleton
 import java.security.MessageDigest
 
 @Singleton
-class EventIdempotencyGuard {
+class EventIdempotencyGuard(
+    private val sessions: ParkingSessionRepository,
+) {
     fun keyFor(event: GateEvent): IdempotencyKey =
         IdempotencyKey(digestOf("${event.type.name}$SEPARATOR${event.licensePlate.value}$SEPARATOR${discriminatorOf(event)}"))
 
@@ -14,8 +17,10 @@ class EventIdempotencyGuard {
         when (event) {
             is GateEvent.EntryEvent -> event.entryTime.toString()
             is GateEvent.ExitEvent -> event.exitTime.toString()
-            is GateEvent.ParkedEvent -> event.coordinates.toString()
+            is GateEvent.ParkedEvent -> "${openSessionIdFor(event)}$SEPARATOR${event.coordinates}"
         }
+
+    private fun openSessionIdFor(event: GateEvent.ParkedEvent): Long? = sessions.findActiveSessionFor(event.licensePlate)?.id
 
     private fun digestOf(source: String): String =
         MessageDigest

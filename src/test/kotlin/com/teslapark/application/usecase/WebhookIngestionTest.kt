@@ -58,7 +58,7 @@ class WebhookIngestionTest {
 
     private val processGateEvent =
         ProcessGateEvent(
-            idempotencyGuard = EventIdempotencyGuard(),
+            idempotencyGuard = EventIdempotencyGuard(sessions),
             webhookEvents = webhookEvents,
             handleEntry = HandleEntryEvent(sessions, sectors, anomalies, GlobalOccupancyPolicy(), metrics, clock),
             handleParked = HandleParkedEvent(sessions, spots, spots, anomalies, metrics, clock),
@@ -194,6 +194,32 @@ class WebhookIngestionTest {
     }
 
     @Test
+    fun `a vehicle that returns the same day can park again`() {
+        send(entry())
+        send(GateEvent.ParkedEvent(plate, coordinates)).shouldBeInstanceOf<GateEventOutcome.Accepted>()
+        send(exit()).shouldBeInstanceOf<GateEventOutcome.Accepted>()
+
+        val returnedAt = entryTime.plus(Duration.ofHours(3))
+        clock.advanceTo(returnedAt)
+        send(GateEvent.EntryEvent(plate, returnedAt)).shouldBeInstanceOf<GateEventOutcome.Accepted>()
+
+        send(GateEvent.ParkedEvent(plate, coordinates)).shouldBeInstanceOf<GateEventOutcome.Accepted>()
+
+        sessions.findActiveSessionFor(plate)!!.status shouldBe SessionStatus.PARKED
+        spots.countOccupied() shouldBe 1
+    }
+
+    @Test
+    fun `the same parked event replayed within one session is still a duplicate`() {
+        send(entry())
+        send(GateEvent.ParkedEvent(plate, coordinates)).shouldBeInstanceOf<GateEventOutcome.Accepted>()
+
+        repeat(9) { send(GateEvent.ParkedEvent(plate, coordinates)).shouldBeInstanceOf<GateEventOutcome.Duplicate>() }
+
+        spots.countOccupied() shouldBe 1
+    }
+
+    @Test
     fun `an exit before the entry is rejected without generating revenue`() {
         send(entry())
 
@@ -209,7 +235,7 @@ class WebhookIngestionTest {
     fun `the raw event is persisted before processing and marked afterwards`() {
         send(entry()).shouldBeInstanceOf<GateEventOutcome.Accepted>()
 
-        val key = EventIdempotencyGuard().keyFor(entry())
+        val key = EventIdempotencyGuard(sessions).keyFor(entry())
         val stored = webhookEvents.findBy(key)!!
 
         stored.rawPayload shouldBe """{"event_type":"ENTRY"}"""

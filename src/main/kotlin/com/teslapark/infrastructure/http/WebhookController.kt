@@ -34,6 +34,8 @@ class WebhookController(
     fun receive(
         @Body rawPayload: String,
     ): HttpResponse<*> {
+        logger.info("raw webhook payload received: {}", rawPayload)
+
         val request =
             runCatching { objectMapper.readValue(rawPayload, WebhookRequest::class.java) }
                 .getOrElse { failure ->

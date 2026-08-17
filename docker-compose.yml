@@ -46,6 +46,7 @@ services:
     ports:
       - "${GCS_HOST_PORT:-3000}:3000"
       - "${API_HOST_PORT:-3003}:3003"
+      - "${DEBUG_HOST_PORT:-5005}:5005"
     healthcheck:
       test:
         - CMD
@@ -90,6 +91,18 @@ services:
       timeout: 3s
       retries: 12
       start_period: 30s
+    restart: unless-stopped
+
+  webhook-forwarder:
+    image: ${SOCAT_IMAGE:-alpine/socat:1.8.0.0}
+    container_name: teslapark-webhook-forwarder
+    depends_on:
+      gate-control-system:
+        condition: service_healthy
+    network_mode: service:gate-control-system
+    command: TCP-LISTEN:3003,fork,reuseaddr TCP:host.docker.internal:3003
+    profiles:
+      - local-api
     restart: unless-stopped
 
   prometheus:

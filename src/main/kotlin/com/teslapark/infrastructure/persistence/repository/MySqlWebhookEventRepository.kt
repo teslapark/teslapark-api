@@ -11,6 +11,8 @@ import com.teslapark.infrastructure.persistence.mapper.toTimestamp
 import com.teslapark.infrastructure.persistence.mapper.toWebhookEventEntity
 import jakarta.inject.Singleton
 
+private const val IDEMPOTENCY_KEY_UNIQUE = "uk_webhook_event_idempotency_key"
+
 private const val SELECT_EVENT =
     """
     SELECT id, idempotency_key, event_type, license_plate, session_id, event_time,
@@ -24,6 +26,7 @@ class MySqlWebhookEventRepository(
 ) : WebhookEventRepository {
     override fun registerIfAbsent(event: WebhookEventRecord): DomainResult<WebhookEventRecord> =
         translateConstraintViolation(
+            expected = mapOf(IDEMPOTENCY_KEY_UNIQUE to DomainError.DuplicateWebhookEvent(event.idempotencyKey.value)),
             block = {
                 jdbc.inTransaction { connection ->
                     val id =
@@ -44,7 +47,6 @@ class MySqlWebhookEventRepository(
                     event.copy(id = id).asSuccess()
                 }
             },
-            onViolation = { DomainError.DuplicateWebhookEvent(event.idempotencyKey.value) },
         )
 
     override fun findBy(idempotencyKey: IdempotencyKey): WebhookEventRecord? =

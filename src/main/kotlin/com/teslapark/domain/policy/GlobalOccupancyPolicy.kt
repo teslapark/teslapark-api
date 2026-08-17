@@ -5,13 +5,13 @@ import com.teslapark.domain.error.DomainResult
 import com.teslapark.domain.error.asFailure
 import com.teslapark.domain.error.asSuccess
 import com.teslapark.domain.model.Occupancy
+import jakarta.inject.Singleton
 
-object OccupancyPolicy {
-    fun tierFor(occupancy: Occupancy): OccupancyTier = OccupancyTier.of(occupancy.rate)
+@Singleton
+class GlobalOccupancyPolicy : OccupancyStrategy {
+    override fun tierFor(occupancy: Occupancy): OccupancyTier = OccupancyTier.of(occupancy.rate)
 
-    fun admitsEntry(occupancy: Occupancy): Boolean = tierFor(occupancy).acceptsEntry
-
-    fun admit(occupancy: Occupancy): DomainResult<OccupancyTier> {
+    override fun admit(occupancy: Occupancy): DomainResult<OccupancyTier> {
         val tier = tierFor(occupancy)
         return if (tier.acceptsEntry) tier.asSuccess() else DomainError.GarageFull.asFailure()
     }

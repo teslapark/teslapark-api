@@ -8,6 +8,7 @@ RUN ./gradlew --version --no-daemon
 
 COPY settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY config config
+COPY docs/api docs/api
 RUN ./gradlew --no-daemon dependencies --configuration runtimeClasspath
 
 COPY src src

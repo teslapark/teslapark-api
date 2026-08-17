@@ -1,14 +1,12 @@
 package com.teslapark.infrastructure.persistence.repository
 
-import io.micronaut.context.annotation.Value
+import com.teslapark.infrastructure.config.GarageConfigurationProperties
 import jakarta.inject.Singleton
 import java.sql.Connection
 
 @Singleton
 class GarageRegistry(
-    @Value("\${teslapark.garage.name:sp-01}") private val garageName: String,
-    @Value("\${teslapark.garage.timezone:America/Sao_Paulo}") private val timezone: String,
-    @Value("\${teslapark.garage.currency:BRL}") private val currency: String,
+    private val garage: GarageConfigurationProperties,
 ) {
     fun ensureGarage(connection: Connection): Long {
         connection.update(
@@ -16,10 +14,10 @@ class GarageRegistry(
             INSERT INTO garage (name, timezone, currency) VALUES (?, ?, ?)
             ON DUPLICATE KEY UPDATE timezone = VALUES(timezone), currency = VALUES(currency)
             """.trimIndent(),
-            garageName,
-            timezone,
-            currency,
+            garage.name,
+            garage.timezone,
+            garage.currency,
         )
-        return connection.queryFirst("SELECT id FROM garage WHERE name = ?", garageName) { it.getLong("id") }!!
+        return connection.queryFirst("SELECT id FROM garage WHERE name = ?", garage.name) { it.getLong("id") }!!
     }
 }

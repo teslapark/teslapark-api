@@ -3,12 +3,6 @@ package com.teslapark.infrastructure.http.problem
 import com.teslapark.domain.error.DomainError
 import io.micronaut.http.HttpStatus
 
-data class ProblemKind(
-    val status: HttpStatus,
-    val slug: String,
-    val title: String,
-)
-
 object ProblemCatalogue {
     const val BASE_TYPE = "https://api.teslapark.local/errors"
 

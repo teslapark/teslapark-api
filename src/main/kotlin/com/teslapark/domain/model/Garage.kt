@@ -15,6 +15,8 @@ data class Garage(
     fun occupancyOf(occupiedSpots: Int): Occupancy = Occupancy(occupiedSpots, totalCapacity)
 
     companion object {
-        val DEFAULT_TIMEZONE: ZoneId = ZoneId.of("America/Sao_Paulo")
+        const val DEFAULT_TIMEZONE_ID = "America/Sao_Paulo"
+
+        val DEFAULT_TIMEZONE: ZoneId = ZoneId.of(DEFAULT_TIMEZONE_ID)
     }
 }

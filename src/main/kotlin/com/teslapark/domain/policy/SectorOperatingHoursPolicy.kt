@@ -5,19 +5,21 @@ import com.teslapark.domain.error.DomainResult
 import com.teslapark.domain.error.asFailure
 import com.teslapark.domain.error.asSuccess
 import com.teslapark.domain.model.Sector
+import jakarta.inject.Singleton
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
 
-object OperatingHoursPolicy {
-    fun isOpen(
+@Singleton
+class SectorOperatingHoursPolicy : OperatingHoursStrategy {
+    override fun isOpen(
         sector: Sector,
         at: Instant,
         zone: ZoneId,
     ): Boolean = sector.isOpenAt(localTimeOf(at, zone))
 
-    fun admitOperation(
+    override fun admitOperation(
         sector: Sector,
         at: Instant,
         zone: ZoneId,
@@ -28,7 +30,7 @@ object OperatingHoursPolicy {
             DomainError.SectorClosed(sector.code.value).asFailure()
         }
 
-    fun admitStay(
+    override fun admitStay(
         sector: Sector,
         stay: Duration,
     ): DomainResult<Duration> =

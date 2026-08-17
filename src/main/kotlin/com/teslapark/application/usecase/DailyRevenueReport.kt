@@ -2,15 +2,7 @@ package com.teslapark.application.usecase
 
 import com.teslapark.domain.model.CurrencyCode
 import com.teslapark.domain.model.Money
-import com.teslapark.domain.model.SectorCode
 import java.time.LocalDate
-
-data class SectorRevenue(
-    val sector: SectorCode,
-    val amount: Money,
-    val sessions: Int,
-    val freeSessions: Int,
-)
 
 data class DailyRevenueReport(
     val revenueDate: LocalDate,

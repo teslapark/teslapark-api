@@ -120,6 +120,26 @@ class GateControlSystemClientTest {
     }
 
     @Test
+    fun `the minimal payload documented in the challenge statement is accepted`() {
+        val port = startServer { it.respond(HTTP_OK, STATEMENT_PAYLOAD) }
+
+        val configuration = providerAt(port).fetchConfiguration().valueOrNull().shouldNotBeNull()
+
+        configuration.garage.sectors shouldHaveSize 1
+        configuration.spots shouldHaveSize 1
+        configuration.totalCapacity shouldBe 100
+
+        val sector = configuration.garage.sectorBy(SectorCode("A")).shouldNotBeNull()
+        sector.basePrice shouldBe Money.of("10.00")
+        sector.maxCapacity shouldBe 100
+        sector.openHour shouldBe LocalTime.of(0, 0)
+        sector.closeHour shouldBe LocalTime.of(23, 59)
+        sector.durationLimit shouldBe Duration.ofMinutes(1440)
+
+        configuration.spots.single().coordinates shouldBe Coordinates.of("-23.561684", "-46.655981")
+    }
+
+    @Test
     fun `a server error is retried and then reported as a domain error`() {
         val attempts = AtomicInteger()
         val port =
@@ -167,6 +187,18 @@ class GateControlSystemClientTest {
                 """{"$idKey":$index,"sector":"$sector","lat":$latitude,"lng":$longitude,"occupied":false}"""
             }
         }
+
+        val STATEMENT_PAYLOAD =
+            """
+            {
+              "garage": [
+                {"sector": "A", "basePrice": 10.0, "max_capacity": 100}
+              ],
+              "spots": [
+                {"id": 1, "sector": "A", "lat": -23.561684, "lng": -46.655981}
+              ]
+            }
+            """.trimIndent()
 
         val SNAKE_CASE_PAYLOAD =
             """

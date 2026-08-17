@@ -36,10 +36,16 @@ class WebhookController(
     ): HttpResponse<*> {
         val request =
             runCatching { objectMapper.readValue(rawPayload, WebhookRequest::class.java) }
-                .getOrElse { return badRequest(DomainError.MalformedEventPayload("unreadable event payload")) }
+                .getOrElse { failure ->
+                    logger.warn("rejected an unreadable webhook payload: {}", failure.message)
+                    return badRequest(DomainError.MalformedEventPayload("unreadable event payload"))
+                }
 
         return when (val event = request.toGateEvent()) {
-            is DomainResult.Failure -> badRequest(event.error)
+            is DomainResult.Failure -> {
+                logger.warn("rejected a webhook payload: {}", event.error)
+                badRequest(event.error)
+            }
             is DomainResult.Success -> process(event.value, rawPayload)
         }
     }

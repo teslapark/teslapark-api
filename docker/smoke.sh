@@ -65,6 +65,8 @@ expect_status 'GET /health returns 200' "$API_URL/health" 200
 expect_status 'GET /health/readiness returns 200' "$API_URL/health/readiness" 200
 expect_json_field 'readiness reports UP' "$API_URL/health/readiness" status UP
 expect_status 'GCS GET /garage returns 200' "$GCS_URL/garage" 200
+expect_status 'Swagger UI is served by the api' "$API_URL/swagger/index.html" 200
+expect_status 'the openapi spec is served by the api' "$API_URL/swagger/openapi.yaml" 200
 
 if ((failures > 0)); then
   printf '\nsmoke failed with %s failing check(s)\n' "$failures" >&2

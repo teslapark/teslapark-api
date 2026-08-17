@@ -7,7 +7,7 @@ import com.teslapark.domain.model.AnomalyType
 import com.teslapark.domain.model.RevenueEntry
 import com.teslapark.domain.model.Sector
 import com.teslapark.domain.model.SessionAnomaly
-import com.teslapark.domain.policy.PricingPolicy
+import com.teslapark.domain.policy.PricingStrategy
 import com.teslapark.domain.port.AnomalyRepository
 import com.teslapark.domain.port.ClockProvider
 import com.teslapark.domain.port.MetricsPublisher
@@ -24,6 +24,7 @@ class HandleExitEvent(
     private val spots: SpotRepository,
     private val revenue: RevenueRepository,
     private val anomalies: AnomalyRepository,
+    private val pricingPolicy: PricingStrategy,
     private val metrics: MetricsPublisher,
     private val clock: ClockProvider,
 ) {
@@ -42,7 +43,7 @@ class HandleExitEvent(
             billingSectorFor(exited.sectorCode?.value)
                 ?: return recordAnomaly(event, AnomalyType.OUT_OF_ORDER_EVENT, "garage has no sector to bill against")
 
-        val charge = PricingPolicy.charge(exited.stay!!, billingSector.basePrice, exited.priceMultiplier)
+        val charge = pricingPolicy.charge(exited.stay!!, billingSector.basePrice, exited.priceMultiplier)
         val revenueDate = clock.localDateOf(event.exitTime)
         val charged =
             exited

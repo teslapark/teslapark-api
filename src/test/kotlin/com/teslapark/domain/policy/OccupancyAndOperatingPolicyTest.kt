@@ -17,6 +17,9 @@ import java.time.LocalTime
 import java.time.ZoneId
 
 class OccupancyAndOperatingPolicyTest {
+    private val occupancyPolicy = GlobalOccupancyPolicy()
+    private val operatingHours = SectorOperatingHoursPolicy()
+
     private val saoPaulo = ZoneId.of("America/Sao_Paulo")
 
     private val sectorB =
@@ -62,18 +65,18 @@ class OccupancyAndOperatingPolicyTest {
     fun `a full garage refuses entry and the first exit reopens it`() {
         val full = Occupancy(occupiedSpots = 30, totalCapacity = 30)
 
-        OccupancyPolicy.admitsEntry(full) shouldBe false
-        OccupancyPolicy.admit(full).errorOrNull() shouldBe DomainError.GarageFull
+        occupancyPolicy.admitsEntry(full) shouldBe false
+        occupancyPolicy.admit(full).errorOrNull() shouldBe DomainError.GarageFull
 
         val afterOneExit = Occupancy(occupiedSpots = 29, totalCapacity = 30)
-        OccupancyPolicy.admitsEntry(afterOneExit) shouldBe true
-        OccupancyPolicy.admit(afterOneExit).valueOrNull() shouldBe OccupancyTier.PEAK
+        occupancyPolicy.admitsEntry(afterOneExit) shouldBe true
+        occupancyPolicy.admit(afterOneExit).valueOrNull() shouldBe OccupancyTier.PEAK
     }
 
     @Test
     fun `occupancy is evaluated globally and never per sector`() {
-        OccupancyPolicy.tierFor(Occupancy(occupiedSpots = 15, totalCapacity = 30)) shouldBe OccupancyTier.HIGH
-        OccupancyPolicy.tierFor(Occupancy.empty(totalCapacity = 30)) shouldBe OccupancyTier.LOW
+        occupancyPolicy.tierFor(Occupancy(occupiedSpots = 15, totalCapacity = 30)) shouldBe OccupancyTier.HIGH
+        occupancyPolicy.tierFor(Occupancy.empty(totalCapacity = 30)) shouldBe OccupancyTier.LOW
     }
 
     @ParameterizedTest
@@ -87,27 +90,27 @@ class OccupancyAndOperatingPolicyTest {
         instant: String,
         open: Boolean,
     ) {
-        OperatingHoursPolicy.isOpen(sectorB, Instant.parse(instant), saoPaulo) shouldBe open
+        operatingHours.isOpen(sectorB, Instant.parse(instant), saoPaulo) shouldBe open
     }
 
     @Test
     fun `a closed sector rejects the operation`() {
         val beforeOpening = Instant.parse("2026-08-15T10:00:00Z")
 
-        OperatingHoursPolicy
+        operatingHours
             .admitOperation(sectorB, beforeOpening, saoPaulo)
             .errorOrNull() shouldBe DomainError.SectorClosed("B")
 
-        OperatingHoursPolicy
+        operatingHours
             .admitOperation(sectorB, Instant.parse("2026-08-15T12:00:00Z"), saoPaulo)
             .valueOrNull() shouldBe sectorB
     }
 
     @Test
     fun `stay beyond the sector limit is rejected at the exact minute`() {
-        OperatingHoursPolicy.admitStay(sectorB, Duration.ofMinutes(60)).valueOrNull() shouldBe Duration.ofMinutes(60)
+        operatingHours.admitStay(sectorB, Duration.ofMinutes(60)).valueOrNull() shouldBe Duration.ofMinutes(60)
 
-        val error = OperatingHoursPolicy.admitStay(sectorB, Duration.ofMinutes(61)).errorOrNull()
+        val error = operatingHours.admitStay(sectorB, Duration.ofMinutes(61)).errorOrNull()
 
         error.shouldBeInstanceOf<DomainError.DurationLimitExceeded>()
         error.limitMinutes shouldBe 60L

@@ -1,6 +1,7 @@
 package com.teslapark.persistence
 
 import com.teslapark.MySqlSupport
+import com.teslapark.domain.GarageFixtures
 import com.teslapark.domain.error.DomainError
 import com.teslapark.domain.event.GateEventType
 import com.teslapark.domain.model.AnomalyType
@@ -10,11 +11,11 @@ import com.teslapark.domain.model.LicensePlate
 import com.teslapark.domain.model.Money
 import com.teslapark.domain.model.ParkingSession
 import com.teslapark.domain.model.RevenueEntry
-import com.teslapark.domain.model.Sector
 import com.teslapark.domain.model.SectorCode
 import com.teslapark.domain.model.SessionAnomaly
 import com.teslapark.domain.model.Spot
 import com.teslapark.domain.model.WebhookEventRecord
+import com.teslapark.infrastructure.config.GarageConfigurationProperties
 import com.teslapark.infrastructure.persistence.repository.GarageRegistry
 import com.teslapark.infrastructure.persistence.repository.JdbcOperations
 import com.teslapark.infrastructure.persistence.repository.MySqlAnomalyRepository
@@ -55,24 +56,8 @@ class PersistenceAdapterTest {
     private val now = Instant.parse("2026-08-15T12:00:00Z")
     private val today = LocalDate.parse("2026-08-15")
 
-    private val sectorA =
-        Sector(
-            code = SectorCode("A"),
-            basePrice = Money.of("40.50"),
-            maxCapacity = 10,
-            openHour = LocalTime.of(0, 0),
-            closeHour = LocalTime.of(23, 59),
-            durationLimit = Duration.ofMinutes(1440),
-        )
-    private val sectorB =
-        Sector(
-            code = SectorCode("B"),
-            basePrice = Money.of("4.10"),
-            maxCapacity = 20,
-            openHour = LocalTime.of(8, 0),
-            closeHour = LocalTime.of(23, 59),
-            durationLimit = Duration.ofMinutes(60),
-        )
+    private val sectorA = GarageFixtures.SECTOR_A
+    private val sectorB = GarageFixtures.SECTOR_B
 
     private fun spotAt(
         externalId: Long,
@@ -87,7 +72,7 @@ class PersistenceAdapterTest {
         MySqlSupport.flywayFor(jdbcUrl).migrate()
 
         jdbc = JdbcOperations(MySqlSupport.dataSourceFor(jdbcUrl))
-        sectors = MySqlSectorRepository(jdbc, GarageRegistry("sp-01", "America/Sao_Paulo", "BRL"))
+        sectors = MySqlSectorRepository(jdbc, GarageRegistry(GarageConfigurationProperties("sp-01", "America/Sao_Paulo", "BRL")))
         spots = MySqlSpotRepository(jdbc)
         sessions = MySqlParkingSessionRepository(jdbc)
         revenue = MySqlRevenueRepository(jdbc)

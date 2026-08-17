@@ -3,6 +3,7 @@ package com.teslapark.infrastructure.persistence.repository
 import com.teslapark.domain.error.DomainError
 import com.teslapark.domain.error.DomainResult
 import com.teslapark.domain.error.asSuccess
+import com.teslapark.domain.model.CurrencyCode
 import com.teslapark.domain.model.LicensePlate
 import com.teslapark.domain.model.Money
 import com.teslapark.domain.model.ParkingSession
@@ -16,6 +17,8 @@ import java.sql.Connection
 import java.sql.Date
 import java.time.Duration
 import java.time.LocalDate
+
+private const val ACTIVE_PLATE_UNIQUE = "uk_parking_session_active_plate"
 
 private const val SELECT_SESSION =
     """
@@ -46,9 +49,8 @@ class MySqlParkingSessionRepository(
 
     override fun save(session: ParkingSession): DomainResult<ParkingSession> =
         translateConstraintViolation(
-            block = { jdbc.inTransaction { connection -> persist(connection, session) } },
-            onViolation = { DomainError.SessionAlreadyOpen(session.licensePlate.value) },
-        )
+            expected = mapOf(ACTIVE_PLATE_UNIQUE to DomainError.SessionAlreadyOpen(session.licensePlate.value)),
+        ) { jdbc.inTransaction { connection -> persist(connection, session) } }
 
     override fun countOpenSessions(): Int =
         jdbc.readOnly { connection ->
@@ -102,7 +104,7 @@ class MySqlParkingSessionRepository(
                 session.entryTime.toTimestamp(),
                 session.occupancyRateAtEntry,
                 session.priceMultiplier,
-                session.basePriceApplied?.currency?.code ?: "BRL",
+                session.basePriceApplied?.currency?.code ?: CurrencyCode.BRL.code,
             )
         return session.copy(id = id)
     }

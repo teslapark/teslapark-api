@@ -10,6 +10,8 @@ import java.math.BigDecimal
 import java.time.Duration
 
 class PricingPolicyTest {
+    private val pricingPolicy = TieredPricingPolicy()
+
     @ParameterizedTest(name = "{4}: {0}min x {1} x {2} = {3}")
     @CsvSource(
         "29,  40.50, 1.000,   0.00, within the free window",
@@ -27,7 +29,7 @@ class PricingPolicyTest {
         expected: String,
         case: String,
     ) {
-        val charge = PricingPolicy.charge(Duration.ofMinutes(minutes), Money.of(basePrice), BigDecimal(multiplier))
+        val charge = pricingPolicy.charge(Duration.ofMinutes(minutes), Money.of(basePrice), BigDecimal(multiplier))
 
         withClue(case) {
             charge.amount shouldBe Money.of(expected)
@@ -41,12 +43,12 @@ class PricingPolicyTest {
         minutes: Long,
         hours: Int,
     ) {
-        PricingPolicy.chargeableHours(Duration.ofMinutes(minutes)) shouldBe hours
+        pricingPolicy.chargeableHours(Duration.ofMinutes(minutes)) shouldBe hours
     }
 
     @Test
     fun `a free session reports zero hours and zero amount`() {
-        val charge = PricingPolicy.charge(Duration.ofMinutes(22), Money.of("40.50"), OccupancyTier.PEAK)
+        val charge = pricingPolicy.charge(Duration.ofMinutes(22), Money.of("40.50"), OccupancyTier.PEAK)
 
         charge.isWithinFreeWindow shouldBe true
         charge.chargeableHours shouldBe 0
@@ -55,8 +57,8 @@ class PricingPolicyTest {
 
     @Test
     fun `the free window boundary is inclusive`() {
-        PricingPolicy.isWithinFreeWindow(PricingPolicy.FREE_WINDOW) shouldBe true
-        PricingPolicy.isWithinFreeWindow(PricingPolicy.FREE_WINDOW.plusSeconds(1)) shouldBe false
+        pricingPolicy.isWithinFreeWindow(TieredPricingPolicy.FREE_WINDOW) shouldBe true
+        pricingPolicy.isWithinFreeWindow(TieredPricingPolicy.FREE_WINDOW.plusSeconds(1)) shouldBe false
     }
 
     @ParameterizedTest
@@ -65,12 +67,12 @@ class PricingPolicyTest {
         tier: OccupancyTier,
         expected: String,
     ) {
-        PricingPolicy.charge(Duration.ofMinutes(60), Money.of("40.50"), tier).amount shouldBe Money.of(expected)
+        pricingPolicy.charge(Duration.ofMinutes(60), Money.of("40.50"), tier).amount shouldBe Money.of(expected)
     }
 
     @Test
     fun `rounding never favours the operator by more than a cent`() {
-        val charge = PricingPolicy.charge(Duration.ofMinutes(60), Money.of("40.50"), BigDecimal("1.250"))
+        val charge = pricingPolicy.charge(Duration.ofMinutes(60), Money.of("40.50"), BigDecimal("1.250"))
 
         charge.amount.amount.toPlainString() shouldBe "50.63"
     }

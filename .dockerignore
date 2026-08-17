@@ -10,6 +10,8 @@
 .kotlin
 
 docs
+!docs/api
+!docs/api/openapi.yaml
 README.md
 Makefile
 docker-compose.yml

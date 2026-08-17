@@ -11,7 +11,9 @@ import com.teslapark.domain.model.Sector
 import com.teslapark.domain.model.SectorCode
 import com.teslapark.domain.model.SessionStatus
 import com.teslapark.domain.model.Spot
+import com.teslapark.domain.policy.GlobalOccupancyPolicy
 import com.teslapark.domain.policy.OccupancyTier
+import com.teslapark.domain.policy.TieredPricingPolicy
 import com.teslapark.domain.port.FixedClockProvider
 import com.teslapark.domain.port.InMemoryAnomalyRepository
 import com.teslapark.domain.port.InMemoryParkingSessionRepository
@@ -58,9 +60,9 @@ class WebhookIngestionTest {
         ProcessGateEvent(
             idempotencyGuard = EventIdempotencyGuard(),
             webhookEvents = webhookEvents,
-            handleEntry = HandleEntryEvent(sessions, sectors, anomalies, metrics, clock),
+            handleEntry = HandleEntryEvent(sessions, sectors, anomalies, GlobalOccupancyPolicy(), metrics, clock),
             handleParked = HandleParkedEvent(sessions, spots, anomalies, metrics, clock),
-            handleExit = HandleExitEvent(sessions, sectors, spots, revenue, anomalies, metrics, clock),
+            handleExit = HandleExitEvent(sessions, sectors, spots, revenue, anomalies, TieredPricingPolicy(), metrics, clock),
             transaction = transaction,
             metrics = metrics,
             clock = clock,

@@ -11,8 +11,6 @@ import io.micronaut.context.ApplicationContext
 import io.micronaut.http.HttpRequest
 import io.micronaut.http.HttpResponse
 import io.micronaut.http.HttpStatus
-import io.micronaut.http.annotation.Controller
-import io.micronaut.http.annotation.Get
 import io.micronaut.http.client.HttpClient
 import io.micronaut.http.client.exceptions.HttpClientResponseException
 import io.micronaut.runtime.server.EmbeddedServer
@@ -24,15 +22,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestMethodOrder
 import java.net.InetSocketAddress
-
-@Controller("/test/unexpected-failure")
-class ExplodingController {
-    @Get
-    fun explode(): String =
-        throw IllegalStateException(
-            "SQLSyntaxErrorException: Table 'teslapark.parking_session' doesn't exist at com.mysql.cj.jdbc",
-        )
-}
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)

@@ -14,6 +14,12 @@ micronaut:
         url: ${GCS_BASE_URL:`http://localhost:3000`}
         connect-timeout: 2s
         read-timeout: 5s
+  router:
+    static-resources:
+      swagger-ui:
+        enabled: true
+        paths: classpath:META-INF/swagger/views
+        mapping: /swagger/**
   metrics:
     enabled: true
     export:

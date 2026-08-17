@@ -1,15 +1,8 @@
 package com.teslapark.application.usecase
 
+import com.teslapark.domain.GarageFixtures
 import com.teslapark.domain.error.DomainError
-import com.teslapark.domain.model.Coordinates
-import com.teslapark.domain.model.CurrencyCode
-import com.teslapark.domain.model.Garage
-import com.teslapark.domain.model.GarageConfiguration
 import com.teslapark.domain.model.GarageConfigurationStatus
-import com.teslapark.domain.model.Money
-import com.teslapark.domain.model.Sector
-import com.teslapark.domain.model.SectorCode
-import com.teslapark.domain.model.Spot
 import com.teslapark.domain.port.FixedClockProvider
 import com.teslapark.domain.port.InMemoryGarageConfigurationProvider
 import com.teslapark.domain.port.InMemoryGarageStateRepository
@@ -19,10 +12,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
-import java.math.BigDecimal
-import java.time.Duration
 import java.time.Instant
-import java.time.LocalTime
 
 class SyncGarageConfigurationTest {
     private val now = Instant.parse("2026-08-15T09:00:03Z")
@@ -35,43 +25,7 @@ class SyncGarageConfigurationTest {
 
     private val useCase = SyncGarageConfiguration(provider, sectors, spots, garageState, clock)
 
-    private val sectorA =
-        Sector(
-            code = SectorCode("A"),
-            basePrice = Money.of("40.50"),
-            maxCapacity = 10,
-            openHour = LocalTime.of(0, 0),
-            closeHour = LocalTime.of(23, 59),
-            durationLimit = Duration.ofMinutes(1440),
-        )
-    private val sectorB =
-        Sector(
-            code = SectorCode("B"),
-            basePrice = Money.of("4.10"),
-            maxCapacity = 20,
-            openHour = LocalTime.of(8, 0),
-            closeHour = LocalTime.of(23, 59),
-            durationLimit = Duration.ofMinutes(60),
-        )
-
-    private fun configuration() =
-        GarageConfiguration(
-            garage =
-                Garage(
-                    name = "sp-01",
-                    timezone = Garage.DEFAULT_TIMEZONE,
-                    currency = CurrencyCode.BRL,
-                    sectors = listOf(sectorA, sectorB),
-                ),
-            spots =
-                (1..30).map { index ->
-                    Spot(
-                        externalId = index.toLong(),
-                        sectorCode = if (index <= 10) sectorA.code else sectorB.code,
-                        coordinates = Coordinates.of(BigDecimal("-23.5616$index"), BigDecimal("-46.6559$index")),
-                    )
-                },
-        )
+    private fun configuration() = GarageFixtures.configuration()
 
     @Test
     fun `synchronization populates sectors spots and total capacity`() {

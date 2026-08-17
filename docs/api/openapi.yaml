@@ -1,0 +1,416 @@
+openapi: 3.1.0
+
+info:
+  title: teslapark-api
+  version: 0.1.0
+  description: |
+    Serviço de gestão de estacionamento: recebe os eventos da cancela, controla a ocupação
+    das vagas e apura a receita por setor.
+
+    Decisões de arquitetura: `docs/adr/0001-arquitetura-teslapark-api.md`.
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:3003
+    description: Ambiente local (docker compose)
+
+tags:
+  - name: webhook
+    description: Eventos publicados pelo Gate Control System
+  - name: revenue
+    description: Apuração de receita
+  - name: admin
+    description: Operações administrativas
+  - name: observability
+    description: Sondas de saúde e métricas
+
+paths:
+  /webhook:
+    post:
+      tags: [webhook]
+      summary: Recebe um evento da cancela
+      description: |
+        Endpoint único para `ENTRY`, `PARKED` e `EXIT`, discriminados por `event_type`.
+
+        Dado inconsistente da origem nunca devolve `5xx` — o evento é registrado como
+        anomalia e a resposta é `200` com `status: IGNORED`, para não induzir retry infinito.
+      operationId: receiveGateEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/EntryEvent'
+                - $ref: '#/components/schemas/ParkedEvent'
+                - $ref: '#/components/schemas/ExitEvent'
+              discriminator:
+                propertyName: event_type
+            examples:
+              entry:
+                summary: ENTRY
+                value:
+                  license_plate: ZUL0001
+                  entry_time: '2026-08-15T12:00:00.000Z'
+                  event_type: ENTRY
+              parked:
+                summary: PARKED
+                value:
+                  license_plate: ZUL0001
+                  lat: -23.561684
+                  lng: -46.655981
+                  event_type: PARKED
+              exit:
+                summary: EXIT
+                value:
+                  license_plate: ZUL0001
+                  exit_time: '2026-08-15T14:10:00.000Z'
+                  event_type: EXIT
+      responses:
+        '200':
+          description: Evento aceito, duplicado ou ignorado por anomalia
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GateEventResponse'
+              examples:
+                accepted_exit:
+                  summary: EXIT faturado
+                  value:
+                    status: ACCEPTED
+                    event_type: EXIT
+                    license_plate: ZUL0001
+                    session_id: 1042
+                    sector: A
+                    spot_id: 1
+                    entry_time: '2026-08-15T12:00:00Z'
+                    exit_time: '2026-08-15T14:10:00Z'
+                    duration_minutes: 130
+                    billed_hours: 3
+                    base_price: 40.50
+                    applied_price_multiplier: 1.000
+                    amount: 121.50
+                    currency: BRL
+                duplicate:
+                  summary: Evento repetido (idempotência)
+                  value:
+                    status: DUPLICATE
+                    event_type: ENTRY
+                    license_plate: ZUL0001
+                    session_id: 1042
+                    detail: Event already processed; no state change applied.
+                ignored:
+                  summary: EXIT sem ENTRY correspondente
+                  value:
+                    status: IGNORED
+                    event_type: EXIT
+                    license_plate: ZUL9999
+                    anomaly: EXIT_WITHOUT_ENTRY
+                    detail: no open session for this plate
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '409': { $ref: '#/components/responses/GarageFull' }
+        '422': { $ref: '#/components/responses/InvalidExitTime' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+        '503': { $ref: '#/components/responses/GarageNotConfigured' }
+
+  /revenue:
+    get:
+      tags: [revenue]
+      summary: Receita do dia por setor
+      description: |
+        Sem `sector`, devolve o total do dia e a quebra por setor.
+        Sem `date`, usa o dia corrente no fuso de operação da garagem (`America/Sao_Paulo`).
+      operationId: getRevenue
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema: { type: string, format: date, example: '2026-08-15' }
+        - name: sector
+          in: query
+          required: false
+          schema: { type: string, example: A }
+      responses:
+        '200':
+          description: Receita apurada
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SectorRevenue'
+                  - $ref: '#/components/schemas/GarageRevenue'
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/SectorNotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+        '503': { $ref: '#/components/responses/GarageNotConfigured' }
+    post:
+      tags: [revenue]
+      summary: Receita do dia por setor (corpo JSON)
+      description: |
+        Mesma consulta do `GET`, aceitando o corpo JSON `{ "date", "sector" }` do cliente legado.
+
+        O enunciado descreve um `GET` com corpo. O servidor Netty do Micronaut não decodifica
+        corpo em `GET` (`HttpMethod.permitsRequestBody` exclui o verbo), então o payload legado
+        é aceito neste `POST`, com resposta idêntica à do `GET`.
+      operationId: queryRevenue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RevenueQuery' }
+      responses:
+        '200':
+          description: Receita apurada
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SectorRevenue'
+                  - $ref: '#/components/schemas/GarageRevenue'
+        '400': { $ref: '#/components/responses/ValidationFailed' }
+        '404': { $ref: '#/components/responses/SectorNotFound' }
+
+  /admin/garage/sync:
+    post:
+      tags: [admin]
+      summary: Ressincroniza a configuração com o Gate Control System
+      operationId: syncGarage
+      responses:
+        '200':
+          description: Configuração atualizada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncSummary' }
+        '201':
+          description: Primeira carga da configuração
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SyncSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '502':
+          description: Gate Control System inacessível
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetail' }
+
+  /health:
+    get:
+      tags: [observability]
+      summary: Saúde agregada do serviço
+      operationId: health
+      responses:
+        '200': { description: Serviço saudável }
+        '503': { description: Algum indicador reprovou }
+
+  /health/liveness:
+    get:
+      tags: [observability]
+      summary: Liveness — o processo está vivo
+      operationId: liveness
+      responses:
+        '200': { description: Processo vivo }
+
+  /health/readiness:
+    get:
+      tags: [observability]
+      summary: Readiness — banco acessível e garagem sincronizada
+      operationId: readiness
+      responses:
+        '200': { description: Pronto para receber tráfego }
+        '503': { description: Banco indisponível ou configuração pendente }
+
+  /metrics:
+    get:
+      tags: [observability]
+      summary: Métricas no formato Prometheus
+      operationId: metrics
+      responses:
+        '200':
+          description: Exposição Prometheus
+          content:
+            text/plain:
+              schema: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+components:
+  schemas:
+    EntryEvent:
+      type: object
+      required: [license_plate, entry_time, event_type]
+      properties:
+        license_plate: { type: string, pattern: '^[A-Za-z0-9-]{1,16}$', example: ZUL0001 }
+        entry_time: { type: string, format: date-time, example: '2026-08-15T12:00:00.000Z' }
+        event_type: { type: string, enum: [ENTRY] }
+
+    ParkedEvent:
+      type: object
+      required: [license_plate, lat, lng, event_type]
+      properties:
+        license_plate: { type: string, pattern: '^[A-Za-z0-9-]{1,16}$', example: ZUL0001 }
+        lat: { type: number, format: double, example: -23.561684 }
+        lng: { type: number, format: double, example: -46.655981 }
+        event_type: { type: string, enum: [PARKED] }
+
+    ExitEvent:
+      type: object
+      required: [license_plate, exit_time, event_type]
+      properties:
+        license_plate: { type: string, pattern: '^[A-Za-z0-9-]{1,16}$', example: ZUL0001 }
+        exit_time: { type: string, format: date-time, example: '2026-08-15T14:10:00.000Z' }
+        event_type: { type: string, enum: [EXIT] }
+
+    GateEventResponse:
+      type: object
+      required: [status, event_type, license_plate]
+      properties:
+        status: { type: string, enum: [ACCEPTED, DUPLICATE, IGNORED] }
+        event_type: { type: string, enum: [ENTRY, PARKED, EXIT] }
+        license_plate: { type: string }
+        session_id: { type: integer, format: int64, nullable: true }
+        sector: { type: string, nullable: true }
+        spot_id: { type: integer, format: int64, nullable: true }
+        garage_occupancy_rate: { type: number, format: double, nullable: true }
+        applied_price_multiplier: { type: number, format: double, nullable: true }
+        entry_time: { type: string, format: date-time, nullable: true }
+        exit_time: { type: string, format: date-time, nullable: true }
+        duration_minutes: { type: integer, nullable: true }
+        billed_hours: { type: integer, nullable: true }
+        base_price: { type: number, format: double, nullable: true }
+        amount: { type: number, format: double, nullable: true }
+        currency: { type: string, nullable: true, example: BRL }
+        anomaly:
+          type: string
+          nullable: true
+          enum: [EXIT_WITHOUT_ENTRY, DUPLICATE_ENTRY, PARKED_UNKNOWN_SPOT, OUT_OF_ORDER_EVENT]
+        detail: { type: string, nullable: true }
+
+    RevenueQuery:
+      type: object
+      properties:
+        date: { type: string, format: date, example: '2026-08-15' }
+        sector: { type: string, example: A }
+
+    SectorRevenue:
+      type: object
+      required: [amount, currency, timestamp]
+      properties:
+        amount: { type: number, format: double, example: 1873.50 }
+        currency: { type: string, example: BRL }
+        timestamp: { type: string, format: date-time }
+        sessions: { type: integer, example: 46 }
+        free_sessions_count: { type: integer, example: 12 }
+
+    GarageRevenue:
+      type: object
+      required: [date, amount, currency, timestamp, sectors]
+      properties:
+        date: { type: string, format: date }
+        amount: { type: number, format: double, example: 2031.35 }
+        currency: { type: string, example: BRL }
+        timestamp: { type: string, format: date-time }
+        free_sessions_count: { type: integer }
+        sectors:
+          type: array
+          items:
+            type: object
+            properties:
+              sector: { type: string, example: A }
+              amount: { type: number, format: double, example: 1873.50 }
+              sessions: { type: integer, example: 46 }
+              free_sessions: { type: integer, example: 12 }
+
+    SyncSummary:
+      type: object
+      properties:
+        status: { type: string, enum: [PENDING, SYNCED, STALE] }
+        sectors: { type: integer, example: 2 }
+        spots: { type: integer, example: 30 }
+        total_capacity: { type: integer, example: 30 }
+        synced_at: { type: string, format: date-time }
+
+    ProblemDetail:
+      type: object
+      description: RFC 7807 — Problem Details for HTTP APIs
+      required: [type, title, status, detail, instance, timestamp]
+      properties:
+        type: { type: string, format: uri, example: 'https://api.teslapark.local/errors/garage-full' }
+        title: { type: string, example: Garage is full }
+        status: { type: integer, example: 409 }
+        detail: { type: string }
+        instance: { type: string, example: /webhook }
+        timestamp: { type: string, format: date-time }
+        requestId: { type: string, nullable: true }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+
+  responses:
+    ValidationFailed:
+      description: Payload malformado, campo obrigatório ausente ou formato inválido
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }
+    Unauthorized:
+      description: Token ausente ou inválido
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }
+    Forbidden:
+      description: Token válido sem o escopo necessário
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }
+    SectorNotFound:
+      description: Setor inexistente
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }
+    GarageFull:
+      description: Lotação em 100%, entrada negada até uma saída
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }
+    InvalidExitTime:
+      description: exit_time anterior ao entry_time
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }
+    RateLimited:
+      description: Limite de requisições excedido
+      headers:
+        Retry-After: { schema: { type: integer }, description: Segundos até a próxima tentativa }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }
+    InternalError:
+      description: Falha não prevista — nunca expõe stacktrace, SQL ou nome de tabela
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }
+    GarageNotConfigured:
+      description: Configuração da garagem ainda não sincronizada
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetail' }
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Ativado por `teslapark.security.enabled=true`. Escopos: `revenue:read`,
+        `garage:admin`, `metrics:read`. O webhook fica fora do gate — trafega em
+        rede privada com allowlist de IP.

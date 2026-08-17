@@ -3,17 +3,6 @@ package com.teslapark.domain.model
 import java.math.BigDecimal
 import java.math.RoundingMode
 
-@JvmInline
-value class CurrencyCode(
-    val code: String,
-) {
-    override fun toString(): String = code
-
-    companion object {
-        val BRL = CurrencyCode("BRL")
-    }
-}
-
 data class Money(
     val amount: BigDecimal,
     val currency: CurrencyCode,

@@ -1,25 +1,11 @@
 package com.teslapark.application.usecase
 
 import com.teslapark.domain.model.Money
-import com.teslapark.domain.model.SectorCode
 import com.teslapark.domain.port.ClockProvider
 import com.teslapark.domain.port.ParkingSessionRepository
 import com.teslapark.domain.port.RevenueRepository
 import jakarta.inject.Singleton
 import java.time.LocalDate
-
-data class RevenueDiscrepancy(
-    val sector: SectorCode,
-    val snapshotTotal: Money,
-    val sessionsTotal: Money,
-)
-
-data class ReconciliationReport(
-    val revenueDate: LocalDate,
-    val discrepancies: List<RevenueDiscrepancy>,
-) {
-    val isBalanced: Boolean get() = discrepancies.isEmpty()
-}
 
 @Singleton
 class ReconcileDailyRevenue(

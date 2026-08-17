@@ -1,5 +1,6 @@
 package com.teslapark.domain.port
 
+import com.teslapark.domain.GarageFixtures
 import com.teslapark.domain.error.DomainError
 import com.teslapark.domain.event.GateEventType
 import com.teslapark.domain.model.AnomalyType
@@ -13,7 +14,6 @@ import com.teslapark.domain.model.Money
 import com.teslapark.domain.model.Occupancy
 import com.teslapark.domain.model.ParkingSession
 import com.teslapark.domain.model.RevenueEntry
-import com.teslapark.domain.model.Sector
 import com.teslapark.domain.model.SectorCode
 import com.teslapark.domain.model.SessionAnomaly
 import com.teslapark.domain.model.Spot
@@ -24,7 +24,6 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
-import java.time.Duration
 import java.time.Instant
 import java.time.LocalTime
 
@@ -42,15 +41,7 @@ class PortContractTest {
     private val anomalies = InMemoryAnomalyRepository()
     private val configuration = InMemoryGarageConfigurationProvider()
 
-    private val sectorA =
-        Sector(
-            code = SectorCode("A"),
-            basePrice = Money.of("40.50"),
-            maxCapacity = 10,
-            openHour = LocalTime.of(0, 0),
-            closeHour = LocalTime.of(23, 59),
-            durationLimit = Duration.ofMinutes(1440),
-        )
+    private val sectorA = GarageFixtures.SECTOR_A
     private val spotOne = Spot(externalId = 1, sectorCode = sectorA.code, coordinates = coordinates)
 
     private fun enteredSession() =
@@ -78,6 +69,31 @@ class PortContractTest {
         sectors.findByCode(SectorCode("A")) shouldBe sectorA
         sectors.findByCode(SectorCode("Z")).shouldBeNull()
         sectors.totalCapacity() shouldBe 10
+    }
+
+    @Test
+    fun `locking a spot excludes a concurrent locker until it is occupied or released`() {
+        spots.synchronize(listOf(spotOne))
+
+        spots.lockFreeSpotAt(coordinates).shouldNotBeNull()
+        spots.lockFreeSpotAt(coordinates).shouldBeNull()
+
+        spots.occupy(spotOne, sessionId = 7)
+        spots.releaseHeldBy(sessionId = 7)
+
+        spots.lockFreeSpotAt(coordinates).shouldNotBeNull()
+    }
+
+    @Test
+    fun `synchronizing a spot overwrites its coordinates and preserves occupation`() {
+        spots.synchronize(listOf(spotOne))
+        spots.occupy(spotOne, sessionId = 9)
+
+        val moved = spotOne.copy(coordinates = Coordinates.of("-23.999999", "-46.999999"))
+        spots.synchronize(listOf(moved))
+
+        spots.findByCoordinates(moved.coordinates).shouldNotBeNull().occupied shouldBe true
+        spots.findByCoordinates(coordinates).shouldBeNull()
     }
 
     @Test

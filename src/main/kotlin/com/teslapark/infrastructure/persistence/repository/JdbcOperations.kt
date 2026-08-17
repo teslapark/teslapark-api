@@ -81,13 +81,15 @@ fun Connection.insertReturningId(
     }
 
 fun <T> translateConstraintViolation(
+    expected: Map<String, DomainError>,
     block: () -> DomainResult<T>,
-    onViolation: (String) -> DomainError,
 ): DomainResult<T> =
     try {
         block()
     } catch (violation: SQLIntegrityConstraintViolationException) {
-        onViolation(violation.message.orEmpty()).asFailure()
+        val message = violation.message.orEmpty()
+        val recognised = expected.entries.firstOrNull { message.contains(it.key) } ?: throw violation
+        recognised.value.asFailure()
     }
 
 private fun PreparedStatement.bind(parameters: Array<out Any?>) {

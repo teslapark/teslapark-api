@@ -33,9 +33,9 @@ fun SectorPayload.toDomain(currency: CurrencyCode): Sector =
         code = SectorCode(sector),
         basePrice = Money.of(basePrice, currency),
         maxCapacity = maxCapacity,
-        openHour = LocalTime.parse(openHour),
-        closeHour = LocalTime.parse(closeHour),
-        durationLimit = Duration.ofMinutes(durationLimitMinutes),
+        openHour = LocalTime.parse(operatingOpenHour),
+        closeHour = LocalTime.parse(operatingCloseHour),
+        durationLimit = Duration.ofMinutes(operatingDurationLimitMinutes),
     )
 
 fun SpotPayload.toDomain(): Spot =
@@ -43,5 +43,5 @@ fun SpotPayload.toDomain(): Spot =
         externalId = id,
         sectorCode = SectorCode(sector),
         coordinates = Coordinates.of(lat, lng),
-        occupied = occupied,
+        occupied = occupied ?: false,
     )

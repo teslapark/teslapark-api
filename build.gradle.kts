@@ -31,8 +31,8 @@ micronaut {
 
 val integrationTest: SourceSet =
     sourceSets.create("integrationTest") {
-        compileClasspath += sourceSets.main.get().output
-        runtimeClasspath += sourceSets.main.get().output
+        compileClasspath += sourceSets.main.get().output + sourceSets.test.get().output
+        runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().output
     }
 
 configurations["integrationTestImplementation"].extendsFrom(configurations.testImplementation.get())
@@ -63,6 +63,12 @@ dependencies {
 
 application {
     mainClass.set("com.teslapark.ApplicationKt")
+}
+
+tasks.processResources {
+    from(layout.projectDirectory.file("docs/api/openapi.yaml")) {
+        into("META-INF/swagger/views")
+    }
 }
 
 ktlint {

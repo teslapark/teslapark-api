@@ -6,7 +6,7 @@ import com.teslapark.domain.model.AnomalyType
 import com.teslapark.domain.model.Occupancy
 import com.teslapark.domain.model.ParkingSession
 import com.teslapark.domain.model.SessionAnomaly
-import com.teslapark.domain.policy.OccupancyPolicy
+import com.teslapark.domain.policy.OccupancyStrategy
 import com.teslapark.domain.port.AnomalyRepository
 import com.teslapark.domain.port.ClockProvider
 import com.teslapark.domain.port.MetricsPublisher
@@ -19,6 +19,7 @@ class HandleEntryEvent(
     private val sessions: ParkingSessionRepository,
     private val sectors: SectorRepository,
     private val anomalies: AnomalyRepository,
+    private val occupancyPolicy: OccupancyStrategy,
     private val metrics: MetricsPublisher,
     private val clock: ClockProvider,
 ) {
@@ -30,7 +31,7 @@ class HandleEntryEvent(
         val occupancy = Occupancy(sessions.countOpenSessions(), sectors.totalCapacity())
         metrics.occupancyObserved(occupancy)
 
-        return when (val admission = OccupancyPolicy.admit(occupancy)) {
+        return when (val admission = occupancyPolicy.admit(occupancy)) {
             is DomainResult.Failure -> {
                 metrics.entryDenied()
                 GateEventOutcome.Rejected(admission.error)

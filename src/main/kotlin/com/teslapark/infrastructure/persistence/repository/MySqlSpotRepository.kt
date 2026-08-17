@@ -12,6 +12,8 @@ import com.teslapark.infrastructure.persistence.mapper.toSpotEntity
 import jakarta.inject.Singleton
 import java.sql.Connection
 
+private const val SPOT_HELD_BY_SESSION = "uk_parking_spot_current_session"
+
 private const val SELECT_SPOT =
     """
     SELECT s.id, s.external_id, s.sector_id, sec.code AS sector_code, s.lat, s.lng, s.occupied, s.current_session_id
@@ -53,6 +55,7 @@ class MySqlSpotRepository(
         sessionId: Long,
     ): DomainResult<Spot> =
         translateConstraintViolation(
+            expected = mapOf(SPOT_HELD_BY_SESSION to DomainError.SpotAlreadyOccupied(spot.externalId)),
             block = {
                 jdbc.inTransaction { connection ->
                     val updated =
@@ -73,7 +76,6 @@ class MySqlSpotRepository(
                     }
                 }
             },
-            onViolation = { DomainError.SpotAlreadyOccupied(spot.externalId) },
         )
 
     override fun releaseHeldBy(sessionId: Long): DomainResult<Spot> =

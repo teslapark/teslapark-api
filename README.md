@@ -139,7 +139,9 @@ O contrato completo está em [`docs/api/openapi.yaml`](docs/api/openapi.yaml) e 
 navegável em **http://localhost:3003/swagger/index.html**, com `Try it out` já apontando para ela.
 
 O arquivo continua com **fonte única**: o `processResources` copia `docs/api/openapi.yaml` para dentro
-do artefato no build, então não existe uma segunda cópia versionada para sair de sincronia.
+do artefato no build, então não existe uma segunda cópia versionada para sair de sincronia. Os assets
+da interface vêm do webjar `org.webjars:swagger-ui`, servidos pela própria aplicação — sem CDN, sem
+binário no repositório e funcionando offline.
 
 | Verbo | Rota | Descrição |
 |---|---|---|

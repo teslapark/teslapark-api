@@ -15,6 +15,7 @@ testcontainers = "1.20.4"
 flyway = "10.20.1"
 mysql = "9.1.0"
 logbackContrib = "0.1.5"
+swaggerUi = "5.18.2"
 
 [libraries]
 micronaut-http-server-netty = { module = "io.micronaut:micronaut-http-server-netty" }
@@ -33,6 +34,7 @@ micronaut-micrometer-core = { module = "io.micronaut.micrometer:micronaut-microm
 micronaut-micrometer-registry-prometheus = { module = "io.micronaut.micrometer:micronaut-micrometer-registry-prometheus" }
 micronaut-test-junit5 = { module = "io.micronaut.test:micronaut-test-junit5" }
 snakeyaml = { module = "org.yaml:snakeyaml" }
+swagger-ui = { module = "org.webjars:swagger-ui", version.ref = "swaggerUi" }
 
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-mysql = { module = "org.flywaydb:flyway-mysql", version.ref = "flyway" }

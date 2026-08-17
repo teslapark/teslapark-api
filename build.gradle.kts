@@ -49,6 +49,7 @@ dependencies {
     implementation(libs.micronaut.flyway)
     implementation(libs.micronaut.jdbc.hikari)
     runtimeOnly(libs.snakeyaml)
+    runtimeOnly(libs.swagger.ui)
     runtimeOnly(libs.flyway.mysql)
     runtimeOnly(libs.mysql.connector)
     runtimeOnly(libs.logback.jackson)

@@ -7,25 +7,17 @@ import io.micronaut.management.health.indicator.HealthResult
 import io.micronaut.management.health.indicator.annotation.Readiness
 import jakarta.inject.Singleton
 import org.reactivestreams.Publisher
-import javax.sql.DataSource
 
 @Readiness
 @Singleton
 class DatabaseHealthIndicator(
-    private val dataSource: DataSource,
+    private val probe: DatabaseProbe,
 ) : HealthIndicator {
     override fun getResult(): Publisher<HealthResult> {
-        val probe =
-            runCatching {
-                dataSource.connection.use { connection ->
-                    connection.createStatement().use { statement ->
-                        statement.executeQuery(PROBE).use { rows -> rows.next() }
-                    }
-                }
-            }
+        val reachable = runCatching { probe.isReachable() }.getOrDefault(false)
 
         val builder =
-            if (probe.getOrDefault(false)) {
+            if (reachable) {
                 HealthResult.builder(NAME, HealthStatus.UP)
             } else {
                 HealthResult.builder(NAME, HealthStatus.DOWN).details(mapOf("error" to "database is unreachable"))
@@ -36,6 +28,5 @@ class DatabaseHealthIndicator(
 
     private companion object {
         const val NAME = "database"
-        const val PROBE = "SELECT 1"
     }
 }

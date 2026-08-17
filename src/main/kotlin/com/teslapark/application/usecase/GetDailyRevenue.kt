@@ -9,14 +9,14 @@ import com.teslapark.domain.model.Money
 import com.teslapark.domain.model.SectorCode
 import com.teslapark.domain.port.ClockProvider
 import com.teslapark.domain.port.RevenueRepository
-import com.teslapark.domain.port.SectorRepository
+import com.teslapark.domain.port.SectorQuery
 import jakarta.inject.Singleton
 import java.time.LocalDate
 
 @Singleton
 class GetDailyRevenue(
     private val revenue: RevenueRepository,
-    private val sectors: SectorRepository,
+    private val sectors: SectorQuery,
     private val clock: ClockProvider,
 ) {
     fun execute(

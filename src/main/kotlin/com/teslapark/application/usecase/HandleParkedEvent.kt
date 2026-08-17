@@ -8,13 +8,15 @@ import com.teslapark.domain.port.AnomalyRepository
 import com.teslapark.domain.port.ClockProvider
 import com.teslapark.domain.port.MetricsPublisher
 import com.teslapark.domain.port.ParkingSessionRepository
-import com.teslapark.domain.port.SpotRepository
+import com.teslapark.domain.port.SpotAllocation
+import com.teslapark.domain.port.SpotQuery
 import jakarta.inject.Singleton
 
 @Singleton
 class HandleParkedEvent(
     private val sessions: ParkingSessionRepository,
-    private val spots: SpotRepository,
+    private val spotQuery: SpotQuery,
+    private val spots: SpotAllocation,
     private val anomalies: AnomalyRepository,
     private val metrics: MetricsPublisher,
     private val clock: ClockProvider,
@@ -24,7 +26,7 @@ class HandleParkedEvent(
             sessions.findActiveSessionFor(event.licensePlate)
                 ?: return recordAnomaly(event, AnomalyType.OUT_OF_ORDER_EVENT, "no open session for this plate", null)
 
-        val known = spots.findByCoordinates(event.coordinates)
+        val known = spotQuery.findByCoordinates(event.coordinates)
         if (known == null) {
             return recordAnomaly(event, AnomalyType.PARKED_UNKNOWN_SPOT, "no spot matches the coordinates", session.id)
         }

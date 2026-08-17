@@ -26,6 +26,9 @@ micronaut-retry = { module = "io.micronaut:micronaut-retry" }
 micronaut-inject-kotlin = { module = "io.micronaut:micronaut-inject-kotlin" }
 micronaut-validation = { module = "io.micronaut.validation:micronaut-validation" }
 micronaut-validation-processor = { module = "io.micronaut.validation:micronaut-validation-processor" }
+micronaut-data-hibernate-jpa = { module = "io.micronaut.data:micronaut-data-hibernate-jpa" }
+micronaut-hibernate-jpa = { module = "io.micronaut.sql:micronaut-hibernate-jpa" }
+jakarta-persistence = { module = "jakarta.persistence:jakarta.persistence-api" }
 micronaut-data-jdbc = { module = "io.micronaut.data:micronaut-data-jdbc" }
 micronaut-data-processor = { module = "io.micronaut.data:micronaut-data-processor" }
 micronaut-jdbc-hikari = { module = "io.micronaut.sql:micronaut-jdbc-hikari" }

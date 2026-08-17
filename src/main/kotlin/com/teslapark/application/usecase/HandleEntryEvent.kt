@@ -11,13 +11,13 @@ import com.teslapark.domain.port.AnomalyRepository
 import com.teslapark.domain.port.ClockProvider
 import com.teslapark.domain.port.MetricsPublisher
 import com.teslapark.domain.port.ParkingSessionRepository
-import com.teslapark.domain.port.SectorRepository
+import com.teslapark.domain.port.SectorQuery
 import jakarta.inject.Singleton
 
 @Singleton
 class HandleEntryEvent(
     private val sessions: ParkingSessionRepository,
-    private val sectors: SectorRepository,
+    private val sectors: SectorQuery,
     private val anomalies: AnomalyRepository,
     private val occupancyPolicy: OccupancyStrategy,
     private val metrics: MetricsPublisher,

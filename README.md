@@ -68,7 +68,7 @@ flowchart TB
     end
 
     subgraph saida["Adaptadores de saída"]
-        DB[("MySQL<br/>repositórios JDBC")]
+        DB[("MySQL<br/>Micronaut Data JPA")]
         GCS["GateControlSystemClient<br/>GET /garage"]
         MT["MicrometerMetricsPublisher"]
         CK["SystemClockProvider"]

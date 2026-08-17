@@ -15,20 +15,20 @@ import com.teslapark.domain.model.SectorCode
 import com.teslapark.domain.model.SessionAnomaly
 import com.teslapark.domain.model.Spot
 import com.teslapark.domain.model.WebhookEventRecord
-import com.teslapark.infrastructure.config.GarageConfigurationProperties
-import com.teslapark.infrastructure.persistence.repository.GarageRegistry
-import com.teslapark.infrastructure.persistence.repository.JdbcOperations
-import com.teslapark.infrastructure.persistence.repository.MySqlAnomalyRepository
-import com.teslapark.infrastructure.persistence.repository.MySqlParkingSessionRepository
-import com.teslapark.infrastructure.persistence.repository.MySqlRevenueRepository
-import com.teslapark.infrastructure.persistence.repository.MySqlSectorRepository
-import com.teslapark.infrastructure.persistence.repository.MySqlSpotRepository
-import com.teslapark.infrastructure.persistence.repository.MySqlWebhookEventRepository
+import com.teslapark.domain.port.AnomalyRepository
+import com.teslapark.domain.port.ParkingSessionRepository
+import com.teslapark.domain.port.RevenueRepository
+import com.teslapark.domain.port.SectorRepository
+import com.teslapark.domain.port.SpotRepository
+import com.teslapark.domain.port.TransactionBoundary
+import com.teslapark.domain.port.WebhookEventRepository
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import io.micronaut.context.ApplicationContext
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -45,13 +45,14 @@ import java.util.concurrent.atomic.AtomicInteger
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PersistenceAdapterTest {
-    private lateinit var jdbc: JdbcOperations
-    private lateinit var sectors: MySqlSectorRepository
-    private lateinit var spots: MySqlSpotRepository
-    private lateinit var sessions: MySqlParkingSessionRepository
-    private lateinit var revenue: MySqlRevenueRepository
-    private lateinit var webhookEvents: MySqlWebhookEventRepository
-    private lateinit var anomalies: MySqlAnomalyRepository
+    private lateinit var context: ApplicationContext
+    private lateinit var transaction: TransactionBoundary
+    private lateinit var sectors: SectorRepository
+    private lateinit var spots: SpotRepository
+    private lateinit var sessions: ParkingSessionRepository
+    private lateinit var revenue: RevenueRepository
+    private lateinit var webhookEvents: WebhookEventRepository
+    private lateinit var anomalies: AnomalyRepository
 
     private val now = Instant.parse("2026-08-15T12:00:00Z")
     private val today = LocalDate.parse("2026-08-15")
@@ -71,15 +72,29 @@ class PersistenceAdapterTest {
         val jdbcUrl = MySqlSupport.createIsolatedDatabase("persistence_adapter_test")
         MySqlSupport.flywayFor(jdbcUrl).migrate()
 
-        jdbc = JdbcOperations(MySqlSupport.dataSourceFor(jdbcUrl))
-        sectors = MySqlSectorRepository(jdbc, GarageRegistry(GarageConfigurationProperties("sp-01", "America/Sao_Paulo", "BRL")))
-        spots = MySqlSpotRepository(jdbc)
-        sessions = MySqlParkingSessionRepository(jdbc)
-        revenue = MySqlRevenueRepository(jdbc)
-        webhookEvents = MySqlWebhookEventRepository(jdbc)
-        anomalies = MySqlAnomalyRepository(jdbc)
+        context =
+            ApplicationContext.run(
+                MySqlSupport.datasourceProperties(jdbcUrl) +
+                    mapOf(
+                        "teslapark.garage.sync.enabled" to false,
+                        "teslapark.revenue.reconciliation.enabled" to false,
+                    ),
+                "test",
+            )
+        transaction = context.getBean(TransactionBoundary::class.java)
+        sectors = context.getBean(SectorRepository::class.java)
+        spots = context.getBean(SpotRepository::class.java)
+        sessions = context.getBean(ParkingSessionRepository::class.java)
+        revenue = context.getBean(RevenueRepository::class.java)
+        webhookEvents = context.getBean(WebhookEventRepository::class.java)
+        anomalies = context.getBean(AnomalyRepository::class.java)
 
         sectors.synchronize(listOf(sectorA, sectorB))
+    }
+
+    @AfterAll
+    fun stop() {
+        context.close()
     }
 
     @Test
@@ -115,7 +130,7 @@ class PersistenceAdapterTest {
 
         val locked = ConcurrentLinkedQueue<Long>()
         runConcurrently(threads = 2) {
-            jdbc.inTransaction {
+            transaction.inTransaction {
                 spots.lockAnyFreeSpot()?.let { spot ->
                     locked += spot.externalId
                     Thread.sleep(SHORT_HOLD_MILLIS)
@@ -141,7 +156,7 @@ class PersistenceAdapterTest {
         val nextContender = AtomicInteger()
         runConcurrently(threads = CONTENDERS) {
             val sessionId = contenders[nextContender.getAndIncrement()]
-            jdbc.inTransaction {
+            transaction.inTransaction {
                 val spot = spots.lockFreeSpotAt(contested.coordinates)
                 if (spot != null && spots.occupy(spot, sessionId).valueOrNull() != null) {
                     allocations.incrementAndGet()
@@ -234,7 +249,7 @@ class PersistenceAdapterTest {
         spots.occupy(spot, session.id!!)
 
         runCatching {
-            jdbc.inTransaction {
+            transaction.inTransaction {
                 revenue.accumulate(RevenueEntry(sectorA.code, date, Money.of("121.50")))
                 spots.releaseHeldBy(session.id!!)
                 error("exit failed after the money was written")

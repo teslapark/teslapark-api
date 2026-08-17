@@ -6,6 +6,8 @@ import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.jpa)
+    alias(libs.plugins.kotlin.allopen)
     alias(libs.plugins.ksp)
     alias(libs.plugins.micronaut.application)
     alias(libs.plugins.ktlint)
@@ -18,6 +20,13 @@ version = "0.1.0"
 
 kotlin {
     jvmToolchain(21)
+}
+
+allOpen {
+    annotation("jakarta.persistence.Entity")
+    annotation("jakarta.persistence.MappedSuperclass")
+    annotation("jakarta.persistence.Embeddable")
+    annotation("jakarta.transaction.Transactional")
 }
 
 micronaut {
@@ -48,6 +57,10 @@ dependencies {
     implementation(libs.micronaut.micrometer.registry.prometheus)
     implementation(libs.micronaut.flyway)
     implementation(libs.micronaut.jdbc.hikari)
+    implementation(libs.micronaut.data.hibernate.jpa)
+    implementation(libs.micronaut.hibernate.jpa)
+    implementation(libs.jakarta.persistence)
+    ksp(libs.micronaut.data.processor)
     runtimeOnly(libs.snakeyaml)
     runtimeOnly(libs.swagger.ui)
     runtimeOnly(libs.flyway.mysql)

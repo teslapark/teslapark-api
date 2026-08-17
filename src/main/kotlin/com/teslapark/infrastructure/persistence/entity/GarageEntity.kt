@@ -8,12 +8,18 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 
 @Entity
-@Table(name = "vehicle")
-class VehicleEntity {
+@Table(name = "garage")
+class GarageEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
 
-    @Column(name = "license_plate", nullable = false)
-    lateinit var licensePlate: String
+    @Column(name = "name", nullable = false)
+    lateinit var name: String
+
+    @Column(name = "timezone", nullable = false)
+    lateinit var timezone: String
+
+    @Column(name = "currency", nullable = false)
+    lateinit var currency: String
 }

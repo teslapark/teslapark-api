@@ -69,7 +69,7 @@ class EndToEndTest {
     private fun awaitSynchronization() {
         val deadline = System.currentTimeMillis() + SYNC_TIMEOUT_MILLIS
         while (System.currentTimeMillis() < deadline) {
-            if (call(HttpRequest.GET<Any>("/revenue")).status != HttpStatus.SERVICE_UNAVAILABLE) return
+            if (isReady()) return
             Thread.sleep(POLL_INTERVAL_MILLIS)
         }
     }
@@ -80,6 +80,10 @@ class EndToEndTest {
         } catch (rejected: HttpClientResponseException) {
             rejected.response
         }
+
+    private fun isReady(): Boolean =
+        runCatching { call(HttpRequest.GET<Any>("/revenue")).status != HttpStatus.SERVICE_UNAVAILABLE }
+            .getOrDefault(false)
 
     private fun post(payload: String): HttpResponse<*> = call(HttpRequest.POST("/webhook", payload))
 

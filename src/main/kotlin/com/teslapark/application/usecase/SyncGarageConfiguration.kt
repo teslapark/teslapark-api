@@ -6,15 +6,15 @@ import com.teslapark.domain.model.GarageConfigurationStatus
 import com.teslapark.domain.port.ClockProvider
 import com.teslapark.domain.port.GarageConfigurationProvider
 import com.teslapark.domain.port.GarageStateRepository
-import com.teslapark.domain.port.SectorRepository
-import com.teslapark.domain.port.SpotRepository
+import com.teslapark.domain.port.SectorSynchronization
+import com.teslapark.domain.port.SpotSynchronization
 import jakarta.inject.Singleton
 
 @Singleton
 class SyncGarageConfiguration(
     private val configurationProvider: GarageConfigurationProvider,
-    private val sectors: SectorRepository,
-    private val spots: SpotRepository,
+    private val sectors: SectorSynchronization,
+    private val spots: SpotSynchronization,
     private val garageState: GarageStateRepository,
     private val clock: ClockProvider,
 ) {

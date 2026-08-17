@@ -13,15 +13,15 @@ import com.teslapark.domain.port.ClockProvider
 import com.teslapark.domain.port.MetricsPublisher
 import com.teslapark.domain.port.ParkingSessionRepository
 import com.teslapark.domain.port.RevenueRepository
-import com.teslapark.domain.port.SectorRepository
-import com.teslapark.domain.port.SpotRepository
+import com.teslapark.domain.port.SectorQuery
+import com.teslapark.domain.port.SpotAllocation
 import jakarta.inject.Singleton
 
 @Singleton
 class HandleExitEvent(
     private val sessions: ParkingSessionRepository,
-    private val sectors: SectorRepository,
-    private val spots: SpotRepository,
+    private val sectors: SectorQuery,
+    private val spots: SpotAllocation,
     private val revenue: RevenueRepository,
     private val anomalies: AnomalyRepository,
     private val pricingPolicy: PricingStrategy,

@@ -61,7 +61,7 @@ class WebhookIngestionTest {
             idempotencyGuard = EventIdempotencyGuard(),
             webhookEvents = webhookEvents,
             handleEntry = HandleEntryEvent(sessions, sectors, anomalies, GlobalOccupancyPolicy(), metrics, clock),
-            handleParked = HandleParkedEvent(sessions, spots, anomalies, metrics, clock),
+            handleParked = HandleParkedEvent(sessions, spots, spots, anomalies, metrics, clock),
             handleExit = HandleExitEvent(sessions, sectors, spots, revenue, anomalies, TieredPricingPolicy(), metrics, clock),
             transaction = transaction,
             metrics = metrics,

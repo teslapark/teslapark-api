@@ -1,0 +1,109 @@
+micronaut:
+  application:
+    name: teslapark-api
+  codec:
+    json:
+      additional-types:
+        - application/problem+json
+  server:
+    port: 3003
+    max-request-size: 64KB
+  http:
+    services:
+      gate-control-system:
+        url: ${GCS_BASE_URL:`http://localhost:3000`}
+        connect-timeout: 2s
+        read-timeout: 5s
+  router:
+    static-resources:
+      swagger-ui:
+        enabled: true
+        paths:
+          - classpath:META-INF/swagger/views
+          - classpath:META-INF/resources/webjars/swagger-ui/5.18.2
+        mapping: /swagger/**
+  metrics:
+    enabled: true
+    export:
+      prometheus:
+        enabled: true
+        step: 10s
+        descriptions: true
+    binders:
+      jvm:
+        enabled: true
+      web:
+        enabled: true
+      uptime:
+        enabled: true
+      processor:
+        enabled: true
+      files:
+        enabled: true
+      jdbc:
+        enabled: true
+
+teslapark:
+  security:
+    enabled: ${SECURITY_ENABLED:false}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:false}
+    requests: 600
+    window: 1m
+  revenue:
+    reconciliation:
+      enabled: true
+      interval: 15m
+  garage:
+    name: ${GARAGE_NAME:sp-01}
+    timezone: ${GARAGE_TIMEZONE:America/Sao_Paulo}
+    currency: ${GARAGE_CURRENCY:BRL}
+  gcs:
+    retry:
+      attempts: 3
+      delay: 200ms
+      multiplier: 2.0
+    circuit-breaker:
+      reset: 30s
+
+datasources:
+  default:
+    url: ${DATASOURCE_URL:`jdbc:mysql://localhost:3306/teslapark?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true`}
+    username: ${DATASOURCE_USERNAME:teslapark}
+    password: ${DATASOURCE_PASSWORD:teslapark_local_only}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    dialect: MYSQL
+    maximum-pool-size: 10
+    minimum-idle: 2
+    connection-timeout: 3000
+    validation-timeout: 3000
+
+jpa:
+  default:
+    entity-scan:
+      packages:
+        - com.teslapark.infrastructure.persistence.entity
+    properties:
+      hibernate:
+        hbm2ddl:
+          auto: none
+        show_sql: false
+        jdbc:
+          time_zone: UTC
+
+flyway:
+  datasources:
+    default:
+      enabled: true
+      locations: classpath:db/migration
+      baseline-on-migrate: false
+      clean-disabled: true
+
+endpoints:
+  all:
+    enabled: false
+    sensitive: true
+  health:
+    enabled: true
+    sensitive: false
+    details-visible: ANONYMOUS

@@ -1,0 +1,69 @@
+[versions]
+kotlin = "2.1.20"
+ksp = "2.1.20-1.0.32"
+micronaut = "4.7.6"
+micronautPlugin = "4.4.4"
+ktlint = "1.4.1"
+ktlintPlugin = "12.1.1"
+detekt = "1.23.7"
+junit = "5.11.4"
+junitPlatform = "1.11.4"
+kotest = "5.9.1"
+konsist = "0.17.3"
+mockk = "1.13.16"
+testcontainers = "1.20.4"
+flyway = "10.20.1"
+mysql = "9.1.0"
+logbackContrib = "0.1.5"
+swaggerUi = "5.18.2"
+
+[libraries]
+micronaut-http-server-netty = { module = "io.micronaut:micronaut-http-server-netty" }
+micronaut-http-client = { module = "io.micronaut:micronaut-http-client" }
+micronaut-jackson-databind = { module = "io.micronaut:micronaut-jackson-databind" }
+micronaut-management = { module = "io.micronaut:micronaut-management" }
+micronaut-retry = { module = "io.micronaut:micronaut-retry" }
+micronaut-inject-kotlin = { module = "io.micronaut:micronaut-inject-kotlin" }
+micronaut-validation = { module = "io.micronaut.validation:micronaut-validation" }
+micronaut-validation-processor = { module = "io.micronaut.validation:micronaut-validation-processor" }
+micronaut-data-hibernate-jpa = { module = "io.micronaut.data:micronaut-data-hibernate-jpa" }
+micronaut-hibernate-jpa = { module = "io.micronaut.sql:micronaut-hibernate-jpa" }
+jakarta-persistence = { module = "jakarta.persistence:jakarta.persistence-api" }
+micronaut-data-jdbc = { module = "io.micronaut.data:micronaut-data-jdbc" }
+micronaut-data-processor = { module = "io.micronaut.data:micronaut-data-processor" }
+micronaut-jdbc-hikari = { module = "io.micronaut.sql:micronaut-jdbc-hikari" }
+micronaut-flyway = { module = "io.micronaut.flyway:micronaut-flyway" }
+micronaut-micrometer-core = { module = "io.micronaut.micrometer:micronaut-micrometer-core" }
+micronaut-micrometer-registry-prometheus = { module = "io.micronaut.micrometer:micronaut-micrometer-registry-prometheus" }
+micronaut-test-junit5 = { module = "io.micronaut.test:micronaut-test-junit5" }
+snakeyaml = { module = "org.yaml:snakeyaml" }
+swagger-ui = { module = "org.webjars:swagger-ui", version.ref = "swaggerUi" }
+
+flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
+flyway-mysql = { module = "org.flywaydb:flyway-mysql", version.ref = "flyway" }
+mysql-connector = { module = "com.mysql:mysql-connector-j", version.ref = "mysql" }
+logback-jackson = { module = "ch.qos.logback.contrib:logback-jackson", version.ref = "logbackContrib" }
+logback-json-classic = { module = "ch.qos.logback.contrib:logback-json-classic", version.ref = "logbackContrib" }
+
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitPlatform" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
+testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
+testcontainers-mysql = { module = "org.testcontainers:mysql", version.ref = "testcontainers" }
+
+[bundles]
+unitTest = ["junit-jupiter", "junit-jupiter-params", "kotest-assertions-core", "mockk"]
+integrationTest = ["testcontainers-junit", "testcontainers-mysql"]
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-allopen = { id = "org.jetbrains.kotlin.plugin.allopen", version.ref = "kotlin" }
+kotlin-jpa = { id = "org.jetbrains.kotlin.plugin.jpa", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+micronaut-application = { id = "io.micronaut.application", version.ref = "micronautPlugin" }
+micronaut-library = { id = "io.micronaut.library", version.ref = "micronautPlugin" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintPlugin" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
